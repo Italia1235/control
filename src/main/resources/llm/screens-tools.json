@@ -1,0 +1,533 @@
+[
+  {
+    "name": "get_screen_contents",
+    "description": "Read-only: read ONE screen's tabs and layout fields in actual position order, never all screens or field catalogs. Obtain screenId from get_project_screens; screen names are not unique. Screen usage by projects is available through get_project_screens, not this tool. Each page contains at most 200 fields/empty tabs; an empty tab costs one item. A split tab repeats its metadata and total fieldCount with the remaining fields. totalTabs and totalFields describe the entire screen. If nextCursor is present, continue with the same screenId and that cursor until complete=true. If contents changed, discard previous pages and restart get_screen_contents without cursor. UNKNOWN fields retain their layout row and fieldId with name=null. A field's presence on a screen does NOT prove availability to an issue type: contexts, Field Configuration and permissions also apply. Matching fieldIds does not prove an exact copy of issue configuration. Use this complete snapshot as the source of exact fieldId and anchor IDs before edit_screen_layout. No configuration is changed.",
+    "annotations": {
+      "title": "Чтение вкладок и полей одного экрана",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "screenId": {"type": "integer", "minimum": 1, "description": "Exact screen ID returned by get_project_screens, not a name."},
+        "cursor": {"type": "string", "minLength": 1, "maxLength": 512, "description": "Continuation of the same screen snapshot; omit for the first page."}
+      },
+      "required": ["screenId"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_field_from_screens",
+    "description": "Multi-screen removals. For any ONE-screen layout request use edit_screen_layout instead, including remove-only requests; never split a combined add/move/remove change into separate plans. Remove each named field from each explicitly selected existing screen. This removes layout rows, not custom fields or issue data: stored values and search remain available. Screens may also open on workflow transitions; do not traverse workflow usage or claim transition usage was computed. PROTOCOL: first read get_project_screens for the user's project, or use an exact screenId supplied by the user; never guess a screen and never resolve one by its non-unique name. 'Remove from the project' means the listed CREATE/EDIT/VIEW screens of that project, never every Jira screen. If operations use different screens and the requested operations are unclear, ask which operations. Read get_screen_contents through every nextCursor to obtain exact fieldIds (not names), tabs, positions and neighbors. Do not expand the target set to screens the user did not name. Preview with dryRun:true, fieldIds and screens. Show one screen-by-field table with statuses, previous tab/position/neighbors, operations, total project counts and warnings. SHARED_SCREEN: state the number of other projects affected before asking. DEFAULT_SCREEN: explicitly warn on a separate line that this is Jira's default screen. REQUIRED_ON_CREATE is a warning, not a refusal: the row stays WOULD_REMOVE and the preview has a planId. The field is required by Field Configuration for requiredPairs project/issue-type pairs that create issues through this screen; requiredProjects lists them as projectKey plus issueTypes, and requiredProjectsTruncated=true means more projects exist than listed: say so. Before asking, preview set_field_required {dryRun:true, project:<projectKey>, rows:[{fields:[<fieldIds>], required:false, issueTypes:[<issue type ids>]}]} for every listed project and exact issue-type scope (split issueTypes above 50). Batch all fields with the same project and scope in ONE row (fields[] up to 10) of ONE set_field_required call; do not split by field. Show those previews in the same table, including any other projects they affect. Then ask ONE question with two options: (a) make the fields optional and remove them from the screen: apply every set_field_required plan first, then remove_field_from_screens; (b) only remove them from the screen: say that issue creation in the listed projects and issue types will fail while the fields stay required. Never make a field optional unless the user chose (a); with (b) leave the set_field_required plans unapplied. Only summary on CREATE is PROTECTED_FIELD. HIDES_VALUES: existing values remain stored but disappear from this VIEW screen. EMPTY_TAB: the tab becomes empty. No writes when the preview has no planId. After showing the preview and explaining default, required and shared impacts, ask ONE confirmation question; only after the user's yes call start_operation with toolName=remove_field_from_screens and arguments={dryRun:false,planId:<returned>}. After writing report REMOVED/NOT_PRESENT/FAILED/NOT_ATTEMPTED accurately, show the actual observed layout when returned and state UNKNOWN when actual is unread or unavailable; never present the expected layout as observed. Include the previous tab/position. Explain how to restore: a new edit_screen_layout preview for the same screen and tab, add with place:AFTER with anchor equal to the previous neighbor ('before' in the response); use FIRST if there was no previous neighbor. Automatic Undo is unavailable; do not claim autoUndo or automatic rollback. Limits: 50 fields, 100 screens, 500 field-screen pairs. Unknown/repeated fields reject the whole call. Removal error codes: VALIDATION_ERROR, UNKNOWN_FIELD, UNKNOWN_SCREEN, PROTECTED_FIELD, PREVIEW_STALE, JIRA_ERROR. The shared layout enum also contains FIELD_NOT_ON_SCREEN, UNKNOWN_TAB and UNKNOWN_ANCHOR for move/add addressing; removal uses NOT_PRESENT for an absent field and accepts no tab or anchor. PREVIEW_STALE requires a new shown preview and confirmation; never retry writes blindly.",
+    "annotations": {
+      "title": "Удаление полей с выбранных экранов",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {"type": "boolean", "enum": [true], "description": "Preview only. Apply through start_operation after confirmation."},
+        "fieldIds": {"type": "array", "minItems": 1, "maxItems": 50, "uniqueItems": true, "items": {"type": "string", "minLength": 1}, "description": "Exact fieldIds from get_screen_contents: customfield_N, bare N, or system ID; never field names."},
+        "screens": {
+          "type": "array", "minItems": 1, "maxItems": 100,
+          "items": {
+            "type": "object",
+            "properties": {"screenId": {"type": "integer", "minimum": 1}},
+            "required": ["screenId"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["dryRun", "fieldIds", "screens"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "edit_screen_layout",
+    "description": "Edit ONE exact screen in ONE preview and ONE apply: add orderable custom/system fields, move existing fields, and remove layout rows. For any one-screen request use this tool, never split add/move/remove into separate plans. Read get_project_screens first, or use an exact screenId supplied by the user; never guess a screen or resolve its non-unique name. Clarify CREATE/EDIT/VIEW only if they use different screens and operations are unclear. Read get_screen_contents through every nextCursor for exact fieldId/anchor IDs, tabs and current order. Preview {dryRun:true,screenId,add?,moves?,remove?}; provide 1..50 total actions and at least one nonempty list. add entries are {fieldId,tab?,place?,anchor?}: omit tab/place for first tab/LAST; only existing tabs and FIRST/LAST/BEFORE/AFTER. moves retain {fieldId,tab?,place,anchor?,steps?}: omit tab to keep the current tab; UP/DOWN forbid tab/anchor, default steps=1 (range 1..200), clamp at boundaries with CLAMPED warning. remove contains exact field IDs, not field names. Bare numeric custom IDs are normalized. Reject duplicate field IDs within any list and all cross-list overlaps; never refer to a removed field as an anchor. Semantics are remove, then sequential add, then sequential moves; later actions see preceding changes and may anchor on added or moved fields. Adding an already-present field is ALREADY_PRESENT and removing an absent field is NOT_PRESENT; no relocation is implied. Field contexts are never extended by a layout change: FIELD_CONTEXT_UNCHANGED warns that a custom field stays unavailable outside its contexts. Any invalid action rejects the complete preview and all validationErrors must be corrected before a plan is issued. WOULD_EDIT means one writable final layout; an unchanged layout has no planId. Show one consequences table with all actions, affected tab before/after orders, original removal tab/position/neighbors, assumptions, impact and warnings. tabs over 50 fields use windows +/-5 and truncated:true, not complete order. SHARED_SCREEN: explain total project count includes every affected project. DEFAULT_SCREEN: warn explicitly that this is Jira's default screen. Screens may open on workflow transitions; usage was not traversed, never claim otherwise. REQUIRED_ON_CREATE is a warning, not a refusal: show requiredPairs and requiredProjects/projectKey/issueTypes; explain requiredProjectsTruncated. Before asking, preview set_field_required {dryRun:true,project:<projectKey>,rows:[{fields:[<fieldIds>],required:false,issueTypes:[<ids>]}]} for every listed project/exact scope, batching fields with the same project/scope into one row (up to 10 fields; split issueTypes above 50 into more rows of the same call). Show these previews in the same table including any other affected projects; ask ONE question offering (a) make optional first then edit layout, or (b) edit layout only and issue creation in those scopes fails while fields stay required. Never apply optionality without choice (a); its writes may stale the layout plan, requiring a new shown layout preview and confirmation. Only summary on CREATE is PROTECTED_FIELD. HIDES_VALUES: values remain stored/searchable but disappear from VIEW. EMPTY_TAB: tab becomes empty. Only after user confirmation call start_operation toolName=edit_screen_layout arguments={dryRun:false,planId:<returned>}; never apply directly. One plan is single-use and context/full-screen changes yield PREVIEW_STALE: show a new preview and ask again, never retry writes blindly. Report EDITED and per-action ADDED/MOVED/REMOVED, ALREADY_PRESENT/ALREADY_IN_PLACE/NOT_PRESENT honestly. actual contains the full observed screen layout, never the planned after layout; UNKNOWN means unreadable actual=null. Distinguish FAILED, PARTIAL, NOT_ATTEMPTED and RESTORED. Overall RESTORED requires the full original screen including item IDs; earlier successful additions/removals/transfers or changed IDs mean PARTIAL. A failed transfer permits exactly one source restoration attempt; a row can be RESTORED while the overall call is PARTIAL. Automatic Undo is unavailable. A requested reversal needs a new edit_screen_layout preview and confirmation using the original layout; issue values were not deleted.",
+    "annotations": {
+      "title": "Изменение раскладки одного экрана",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {"type": "boolean", "enum": [true], "description": "Preview only. Apply through start_operation after confirmation."},
+        "screenId": {"type": "integer", "minimum": 1, "description": "Exact screen ID from get_project_screens or supplied by the user, never a screen name."},
+        "add": {
+          "type": "array", "minItems": 1, "maxItems": 50,
+          "description": "Sequential additions after removals. Omitted tab/place mean first tab/LAST.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fieldId": {"type": "string", "minLength": 1},
+              "tab": {"type": "string", "minLength": 1},
+              "place": {"type": "string", "enum": ["FIRST", "LAST", "BEFORE", "AFTER"]},
+              "anchor": {"type": "string", "minLength": 1}
+            },
+            "required": ["fieldId"],
+            "additionalProperties": false
+          }
+        },
+        "remove": {"type": "array", "minItems": 1, "maxItems": 50, "uniqueItems": true, "items": {"type": "string", "minLength": 1}, "description": "Remove these layout rows before additions and moves. Stored issue values remain."},
+        "moves": {
+          "type": "array", "minItems": 1, "maxItems": 50,
+          "description": "Sequential moves after removals and additions. Each field occurs once across all action lists.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fieldId": {"type": "string", "minLength": 1, "description": "Exact existing field ID from get_screen_contents: customfield_N, bare N, or a system ID; never a name."},
+              "tab": {"type": "string", "minLength": 1, "description": "Existing target tab ID or case-insensitive name; omit to keep the current tab. Forbidden for UP/DOWN."},
+              "place": {"type": "string", "enum": ["FIRST", "LAST", "BEFORE", "AFTER", "UP", "DOWN"]},
+              "anchor": {"type": "string", "minLength": 1, "description": "Required only for BEFORE/AFTER: exact field ID on the target tab after preceding moves; never the moving field."},
+              "steps": {"type": "integer", "minimum": 1, "maximum": 200, "description": "Only for UP/DOWN; omitted means one step. Boundary moves are clamped."}
+            },
+            "required": ["fieldId", "place"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["dryRun", "screenId"],
+      "anyOf": [{"required": ["add"]}, {"required": ["moves"]}, {"required": ["remove"]}],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_project_screens",
+    "description": "Read one project's complete effective screen setup before cloning it or assigning CREATE/EDIT/VIEW operation screens: its Issue Type Screen Scheme, the effective Screen Scheme for every issue type, each operation's Screen, and the other projects affected by each shared object. Read-only. ALWAYS call this before clone_project_screens or a set_project_operation_screens preview. Use list_projects first if the project is ambiguous. Show the hierarchy and shared-project counts; do not guess a scope from it. Counts belong to each object's exact id: sharing a child Screen Scheme or Screen does not make the parent Issue Type Screen Scheme shared. otherProjects excludes the target project: 0 means no other active projects, not zero total projects.",
+    "annotations": {
+      "title": "Чтение настроек экранов проекта",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "project": {"type": "string", "minLength": 1, "description": "Project key or exact name."}
+      },
+      "required": ["project"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "clone_project_screens",
+    "description": "Detach ONE project from screen configuration shared with other projects. Copy and assign the project's Issue Type Screen Scheme only if it is shared or Jira's default scheme. Keep a non-default Issue Type Screen Scheme used only by this project, preserving its id and name, and update its mappings to the child copies. scope independently controls copies of the Screen Schemes below it: SCHEME_ONLY keeps every existing Screen Scheme and Screen; ALL copies every effective Screen Scheme used by the project's issue types; SELECTED copies only the effective Screen Schemes for issueTypes, and only those issue types are mapped to the copies. copyScreens independently controls the final level: false keeps existing Screens; true copies every Screen referenced by a copied Screen Scheme. copyScreens=true is invalid with SCHEME_ONLY. Shared source objects are never changed or deleted, so other projects are unaffected. The result is ALREADY_SEPARATE and writes nothing when every requested level is already private to the project and the top scheme is not Jira's default. DIALOG: ALWAYS call get_project_screens first. ASK only unresolved choices: (1) whether to copy no Screen Schemes, all, or only selected issue types, and (2) when Screen Schemes are copied, whether to copy the Screens too. Do not ask again for a choice the user already specified. SELECTED means only the named issue types move to copies, even when an unselected type currently shares the same Screen Scheme. ALL applies to every issue type available in the project. Never infer sharing of the top scheme from shared children: use that exact object's otherProjects count, which excludes the target project. NAMES: defaults preserve meaning under the target project key. For target ABC, `XYZ: Bug Screen` becomes `ABC: Bug Screen`; an unprefixed name becomes `ABC: <old name>`; a name already beginning with `ABC:` keeps that base. If a base is taken, append ` v1`, then ` v2`, and so on. PREVIEW/CONFIRM/APPLY: Call with dryRun=true and all clone details. Show a table with the Issue Type Screen Scheme and each Screen Scheme and Screen whose verdict is COPY or KEEP, selected issue types, and otherProjects. For KEEP, show the retained source id/name, not a new scheme. Explain that mappings or project assignment change but issues do not. Obtain explicit confirmation. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Any changed choice requires a new preview and confirmation. WOULD_CLONE returns planId. CLONED is authoritative completion. ALREADY_SEPARATE means nothing changed. PARTIALLY_CLONED means a write failed after the call started: the listed copies exist and nothing was rolled back; report them and what could not be confirmed, and verify in Jira before a new preview. FAILED uses errorCode and suggestions; report rollback/manual-cleanup details without claiming success. PREVIEW_STALE requires a fresh preview and fresh confirmation. Never retry a consumed planId.",
+    "annotations": {
+      "title": "Копирование настроек экранов проекта",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {"type": "boolean", "enum": [true], "description": "Required. true creates a preview and planId; apply only through start_operation."},
+        "project": {"type": "string", "minLength": 1, "description": "Project key or exact name. Preview only."},
+        "scope": {"type": "string", "enum": ["SCHEME_ONLY", "ALL", "SELECTED"], "description": "Which Screen Schemes to copy below the Issue Type Screen Scheme; the top scheme is kept when private and non-default."},
+        "issueTypes": {"type": "array", "minItems": 1, "maxItems": 50, "uniqueItems": true, "description": "Only with SELECTED: issue type names or ids returned by get_project_screens/list_issue_types.", "items": {"type": "string", "minLength": 1}},
+        "copyScreens": {"type": "boolean", "description": "Whether to copy the Screens referenced by copied Screen Schemes. Must be false with SCHEME_ONLY."}
+      },
+      "required": ["dryRun", "project", "scope", "copyScreens"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_project_operation_screens",
+    "description": "Assign existing Screens to CREATE, EDIT and/or VIEW for ONE project, for any number of issue types in ONE preview, ONE confirmation and ONE operation. ALWAYS read get_project_screens before preview; ask the user for every missing scope or Screen. mappings is the complete batch: each row is {issueTypes:[...], screens:{CREATE?,EDIT?,VIEW?}} or {allIssueTypes:true, screens:{...}}; put every requested assignment (e.g. five types with five different Screens) into this one call, never one call per type: a second preview for the same project is made stale by the first apply. One element is the normal case for one assignment. Rows with several issueTypes give them the same Screens; the same type may appear in several rows if the operations or Screens agree. issueTypes rows change only the named current project types and give a type that followed the DEFAULT mapping its own explicit mapping. allIssueTypes:true changes the DEFAULT mapping and EVERY explicit mapping of the project's scheme, creates no new explicit mappings, and affects types that are not named elsewhere; use it only after the user explicitly chose the whole project. Never mix issueTypes and allIssueTypes in one row. Contradicting rows (the same type and operation with different Screens, including an all-types row against a named row) are rejected before any plan. screens is a partial patch: omitted operations keep their explicit mapping or DEFAULT fallback. Reuse exact Screen ids/names; create a genuinely requested new Screen with create_screen first and use its returned screenId. This tool creates no Screens and never changes workflow transition screens. The plan is computed once against the current scheme and topScheme.mode says how the Issue Type Screen Scheme changes: UPDATE_PRIVATE (the current scheme is not Jira's default and Jira reports only this project as using it: its mappings are updated in place, ID, name and association are kept, no new Issue Type Screen Scheme), COPY_SHARED or COPY_DEFAULT (another project uses it, exclusive use is not proven, or it is Jira's default: ONE new Issue Type Screen Scheme replaces the association once and the source stays unchanged), NO_CHANGE. New scheme names are generated unless the user dictated them (issueTypeScreenSchemeName, mappings[].screenSchemeName): then pass them verbatim and never ask; a dictated name that cannot be applied (UPDATE_PRIVATE keeps the existing Issue Type Screen Scheme name, NO_CHANGE, a taken name) is refused with VALIDATION_ERROR: rerun the preview without it and tell the user. If one name would fall on two different new copies, show which scopes differ and ask which one gets the name; never drop it silently. topScheme also shows the reason, source id, other projects and only the changing mappings; show them before asking. In every mode only the Screen Schemes whose operations change are copied (equal results share one copy; Screen Schemes with different sources or results are never merged); existing Screen Schemes are never edited in place. Source Screen Schemes, Screens and other projects are not modified and no scheme is deleted. Preview and result show, for EVERY project issue type, the final CREATE/EDIT/VIEW (issueTypes[].operations before/after, selected, explicitMapping, changed), new Screen Schemes (screenSchemes[]), warnings about DEFAULT and untouched types, and matrixSource: PLANNED in a preview, READ_BACK after Jira was read. Show this per-type table and the object counts before asking. If effective Screens already match, ALREADY_ASSIGNED creates nothing and has no plan. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Plans are actor-bound, time-limited and single-use; PREVIEW_STALE (also after Jira state changed, including the associations of the scheme, or the plan was consumed) requires a fresh preview and confirmation. Result ASSIGNED: report assignedSchemeId and the READ_BACK matrix. PARTIALLY_ASSIGNED or FAILED: nothing is rolled back; report created[] (objects that exist, complete=false means incomplete), the assignment state and message verbatim, and run a new preview before any retry. With a new scheme assignment NOT_ASSIGNED means the project still uses the source scheme and UNKNOWN means check it in Jira. With UPDATE_PRIVATE the state is read back from Jira: NOT_ASSIGNED = mappings confirmed unchanged, PARTIAL = some mappings already changed (issueTypes is the read-back matrix, never the plan), UNKNOWN = mappings could not be read and may be partly changed; the unchanged scheme id proves nothing.",
+    "annotations": {
+      "title": "Назначение экранов создания, редактирования и просмотра",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {"type": "boolean", "enum": [true], "description": "Required. true previews; apply only through start_operation."},
+        "project": {"type": "string", "minLength": 1, "description": "Project key or exact name. Preview only."},
+        "issueTypeScreenSchemeName": {"type": "string", "minLength": 1, "maxLength": 255, "description": "Optional. Only when the user dictated the exact name of the new Issue Type Screen Scheme; used verbatim (a taken name is refused). Omit otherwise: never ask for it."},
+        "mappings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Preview only. The complete batch of rows {scope, screens patch}.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "issueTypes": {"type": "array", "minItems": 1, "maxItems": 100, "uniqueItems": true, "description": "Existing names/ids of current project issue types this row covers. Give exactly one of issueTypes or allIssueTypes.", "items": {"type": "string", "minLength": 1}},
+              "allIssueTypes": {"type": "boolean", "enum": [true], "description": "Whole-project row: the DEFAULT mapping and every explicit mapping of the project's scheme. Only after the user explicitly chose the whole project."},
+              "screenSchemeName": {"type": "string", "minLength": 1, "maxLength": 255, "description": "Optional. Only when the user dictated the exact name of the new Screen Scheme this row needs; it is used verbatim (a taken name is refused). Omit otherwise: never ask the user for it, the plugin generates a standard name."},
+              "screens": {
+                "type": "object",
+                "minProperties": 1,
+                "description": "Partial patch of operation to exact existing Screen name or id; omitted operations preserve mappings and DEFAULT fallback.",
+                "properties": {
+                  "CREATE": {"type": "string", "minLength": 1},
+                  "EDIT": {"type": "string", "minLength": 1},
+                  "VIEW": {"type": "string", "minLength": 1}
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": ["screens"],
+            "oneOf": [{"required": ["issueTypes"]}, {"required": ["allIssueTypes"]}],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["dryRun", "project", "mappings"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_issue_type_screen_scheme_mappings",
+    "description": "Edit the rows (issue type -> Screen Scheme) of ONE EXISTING Issue Type Screen Scheme IN PLACE, for EVERY project that uses it, in ONE preview, ONE confirmation and ONE operation. Use it ONLY when the user wants to change the SHARED configuration for all projects of that scheme (for example: everyone who uses this scheme gets another Screen Scheme for an issue type). To change the screens of ONE project without touching the others, or to detach a project from a shared scheme, use set_project_operation_screens or clone_project_screens: they isolate the project by copying. Never use this tool to isolate a project. Read get_project_screens first to find the scheme (scheme.id, scheme.name) and the Screen Scheme names or ids in use (issueTypes[].screenScheme); this tool assigns only EXISTING Screen Schemes, creates no Screen Scheme or copy, switches no project and migrates no issues. rows is the complete batch of the request: each row is {action, issueType, screenScheme}. ADD: the issue type has no row of its own yet (ADD for a type that already has its own row is treated as REPLACE and reported as warning ADD_AS_REPLACE with the current and the proposed scheme; the same scheme gives NO_CHANGE). REPLACE: the issue type has its own row, or DEFAULT. REMOVE: deletes the own row (the type then follows the DEFAULT row); screenScheme is forbidden. issueType is an id, an exact name or DEFAULT (the default row of the scheme: it can be replaced, never removed). At most one row per issue type and one for DEFAULT. Put every requested change of the scheme into this one call. The preview shows, per row, the requested and the real action, the Screen Scheme before and after computed from the FINAL table after ALL rows (in any row order; a type without its own row follows the DEFAULT row, marked viaDefault) and CHANGE or NO_CHANGE. projects counts ALL projects that use the scheme, archived ones included: linked = N, changing = M (projects where the effective Screen Scheme of at least one issue type changes), listed = the first 10 by key with archived, changedIssueTypes (may be 0) and rowTypesMissing (issue types of the rows that the project does not have), truncated when N > 10. BEFORE asking for confirmation show a consequence table: the scheme (id, name), every row before -> after, N and M SEPARATELY, scopeText verbatim, and every limitations[] item (issues are not migrated; no copies; projects without a change still use the changed shared table; no rollback; protection against parallel edits is limited). Never say that the screens change in all N projects when M < N, and never call a cut list 'the listed projects'. If every row is NO_CHANGE the status is NO_CHANGE and there is no plan. Apply only through start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Plans are actor-bound, time-limited and single-use; PREVIEW_STALE (also when the scheme, its rows or name, its projects or their issue types, an issue type or any involved Screen Scheme changed) requires a fresh preview and a new confirmation. Result CHANGED means the table read back from Jira equals the plan; rows[].result is APPLIED, NO_CHANGE (not written), NOT_APPLIED, NOT_ATTEMPTED or UNKNOWN. PARTIALLY_CHANGED, FAILED or UNKNOWN: nothing is rolled back, rows already written stay; report message and every row result verbatim, never repeat the old request, and run a NEW preview of the remaining changes with a new confirmation. A validation error carries errorCode (ITSS_NOT_FOUND, ITSS_AMBIGUOUS, SCREEN_SCHEME_NOT_FOUND, SCREEN_SCHEME_AMBIGUOUS, ISSUE_TYPE_NOT_FOUND, DEFAULT_ROW_REQUIRED, ROW_NOT_FOUND, DUPLICATE_ROW, INVALID_ROW) and errorRowIndex (zero-based index in rows[]): fix the request and preview again. The edit cannot be undone through Undo.",
+    "annotations": {
+      "title": "Edit rows of a shared Issue Type Screen Scheme",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Required. true previews; apply only through start_operation."
+        },
+        "issueTypeScreenScheme": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id or exact name of an EXISTING Issue Type Screen Scheme (scheme.id or scheme.name from get_project_screens). Preview only."
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Preview only. The complete batch of rows {action, issueType, screenScheme}; one row per issue type.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "ADD",
+                  "REPLACE",
+                  "REMOVE"
+                ],
+                "description": "ADD: the type has no own row; REPLACE: own row or DEFAULT; REMOVE: delete the own row."
+              },
+              "issueType": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Issue type id or exact name, or DEFAULT for the default row."
+              },
+              "screenScheme": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Id or exact name of an existing Screen Scheme. Required for ADD and REPLACE; forbidden for REMOVE."
+              }
+            },
+            "required": [
+              "action",
+              "issueType"
+            ],
+            "oneOf": [
+              {
+                "properties": {
+                  "action": {
+                    "const": "REMOVE"
+                  },
+                  "screenScheme": false
+                }
+              },
+              {
+                "properties": {
+                  "action": {
+                    "enum": [
+                      "ADD",
+                      "REPLACE"
+                    ]
+                  }
+                },
+                "required": [
+                  "screenScheme"
+                ]
+              }
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "dryRun",
+        "issueTypeScreenScheme",
+        "rows"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "assign_issue_type_screen_scheme",
+    "description": "Switch ONE project to an EXISTING Issue Type Screen Scheme (ITSS) in ONE preview, ONE confirmation and ONE operation: the project then uses that scheme's rows and Screen Schemes. Use it when the user says 'let project X use the screen scheme of project Y / the scheme named Z / Jira's default scheme'. project is the key or name of an active project (an archived project is rejected). issueTypeScreenScheme is an id, an exact name (case does not matter) or the token DEFAULT written exactly in upper case (= Jira's default ITSS; the token wins over a scheme that is merely named DEFAULT). Read get_project_screens first to find the scheme of the source project (scheme.id, scheme.name). Only the link of this one project changes: no row of any ITSS, no Screen Scheme and no screen is edited or copied, no scheme is created and no issue is migrated. To edit the rows of a SHARED ITSS for all its projects use set_issue_type_screen_scheme_mappings; to give ONE project other screens or detach it from a shared scheme BY COPYING use set_project_operation_screens or clone_project_screens, never this tool. The preview shows the project, the current and the new ITSS (id, name, isDefault) and, for EVERY issue type of the project, the Screen Scheme before -> after and the effective CREATE/EDIT/VIEW screens before -> after (viaDefault marks a value that comes through a DEFAULT row or item) with CHANGE or NO_CHANGE. If the project already uses the scheme the status is NO_CHANGE and there is no plan. warnings[]: ITSS_ORPHANED (the old ITSS is not Jira's default and no project, archived ones included, will use it any more; it is not deleted), SHARED_TARGET (count other projects, archived ones included, already use the new ITSS: later edits of its rows or of its Screen Schemes change this project too) and REQUIRED_FIELDS_MISSING_ON_CREATE (for the issueTypes whose CREATE screen changes, fields are required in the field configuration but absent from the new CREATE screen: issues of that type cannot be created until the fields are put on the screen; the warning does not block the change). BEFORE asking for confirmation show a consequence table: the project, current -> new ITSS, per issue type the screens before -> after, every warning verbatim and every limitations[] item (no Undo; the old ITSS is not deleted; a later rollback of create_project for a project created through Control will end in a conflict because the scheme of the project is no longer the created one; the required flag and the Field Configuration Scheme of the project are not tracked between preview and apply). Apply only through start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Plans are actor-bound, time-limited and single-use; PREVIEW_STALE (also when the scheme of the project, either ITSS, their rows or names, the projects of either ITSS, the issue types of the project, an involved Screen Scheme or screen, or the fields of the new CREATE screen changed) requires a fresh preview and a new confirmation. Result CHANGED means the association read back from Jira is the new ITSS and the project is no longer listed under the old one (observedIssueTypeScreenScheme); FAILED means the project still uses the old ITSS, UNKNOWN that the state cannot be established: nothing is rolled back, report message and notes verbatim, read get_project_screens and run a NEW preview with a new confirmation, never repeat the old request. A validation error carries errorCode (ITSS_NOT_FOUND, ITSS_AMBIGUOUS with the ids in the message, UNKNOWN_PROJECT, VALIDATION_ERROR, JIRA_ERROR): fix the request and preview again. The switch cannot be undone through Undo.",
+    "annotations": {
+      "title": "Switch a project to an existing Issue Type Screen Scheme",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Required. true previews; apply only through start_operation."
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Key or name of an ACTIVE project to switch. Preview only."
+        },
+        "issueTypeScreenScheme": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id or exact name of an EXISTING Issue Type Screen Scheme (scheme.id or scheme.name from get_project_screens), or the token DEFAULT (upper case) for Jira's default scheme. Preview only."
+        }
+      },
+      "required": [
+        "dryRun",
+        "project",
+        "issueTypeScreenScheme"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_screen_scheme_operations",
+    "description": "Edit the rows (operation -> screen) of ONE EXISTING Screen Scheme IN PLACE, for EVERY Issue Type Screen Scheme and project that uses it, in ONE preview, ONE confirmation and ONE operation. Use it ONLY when the user wants to change the SHARED Screen Scheme for all its projects (for example: everyone who uses this scheme gets another screen for CREATE). To change the screens of ONE project without touching the others, or to detach a project from a shared configuration, use set_project_operation_screens or clone_project_screens: they isolate the project by copying. Never use this tool to isolate a project, and never copy a shared scheme to change it for everyone. To change which Screen Scheme an issue type gets, use set_issue_type_screen_scheme_mappings. Read get_project_screens first to find the scheme (issueTypes[].screenScheme) and the screen ids and names; this tool assigns only EXISTING screens (create_screen makes new ones), creates no Screen Scheme, copy or screen, changes no Issue Type Screen Scheme or project link and migrates no issues. rows is the complete batch of the request: each row is {action, operation, screen}; operation is DEFAULT, CREATE, EDIT or VIEW, at most one row per operation. ADD: the operation has no row of its own yet (ADD for an operation that already has its own row, DEFAULT included, is treated as REPLACE and reported as warning ADD_AS_REPLACE with the current and the proposed screen; the same screen gives NO_CHANGE). REPLACE: the operation has its own row, or DEFAULT. REMOVE: deletes the own row of CREATE, EDIT or VIEW (the operation then follows the DEFAULT row); screen is forbidden; DEFAULT can only be replaced, never removed. Put every requested change of the scheme into this one call. The preview shows, per row, the requested and the real action, the screen before and after computed from the FINAL table after ALL rows (in any row order; an operation without its own row follows the DEFAULT row, marked viaDefault) and CHANGE or NO_CHANGE. usage lists the Issue Type Screen Schemes that contain the scheme (linked, first 10 by id). projects counts ALL projects that use the scheme through them, archived ones included: linked = N, changing = M (projects where the effective screen of at least one operation of at least one issue type really changes), listed = the first 10 by key with archived, changedIssueTypes (may be 0) and their issueTypeScreenScheme, truncated when N > 10. The warning REQUIRED_FIELDS_MISSING_ON_CREATE (requiredFields: pairs, projects, fields) means: for these (project, issue type) pairs the new CREATE screen lacks a field that their field configuration makes required, so creating such issues will fail until the field is added to the screen (add_field_to_screens or edit_screen_layout); it does not block the change, the user decides. BEFORE asking for confirmation show a consequence table: the scheme (id, name), every row before -> after, N and M SEPARATELY, scopeText verbatim (it already says whether the list is cut: never say that the screens change in all N projects when M < N, and never call a cut list 'the listed projects'), the REQUIRED_FIELDS_MISSING_ON_CREATE warning with its fields and projects when present, and every limitations[] item (no rollback; after a failure only a NEW preview of the remaining changes; protection against parallel edits is limited; a change of a required flag in a field configuration or of a project's Field Configuration Scheme between preview and apply is NOT tracked; issues are not migrated; workflow transition screens are not affected). If every row is NO_CHANGE the status is NO_CHANGE and there is no plan; a scheme that no Issue Type Screen Scheme uses gives warning NO_LINKED_PROJECTS. Apply only through start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Plans are actor-bound, time-limited and single-use; PREVIEW_STALE (also when the scheme, its rows, name or description, the Issue Type Screen Schemes that contain it and their rows, their projects or issue types, a screen from the table or the fields of an effective CREATE screen changed) requires a fresh preview and a new confirmation. Result CHANGED means the scheme read back from Jira equals the plan; rows[].result is APPLIED, NO_CHANGE (not written), NOT_APPLIED, NOT_ATTEMPTED or UNKNOWN. PARTIALLY_CHANGED, FAILED or UNKNOWN: nothing is rolled back, rows already written stay; report message and every row result verbatim, never repeat the old request, and run a NEW preview of the remaining changes with a new confirmation. A validation error carries errorCode (SCREEN_SCHEME_NOT_FOUND, SCREEN_SCHEME_AMBIGUOUS, SCREEN_NOT_FOUND, SCREEN_AMBIGUOUS, INVALID_OPERATION, DEFAULT_ROW_REQUIRED, ROW_NOT_FOUND, DUPLICATE_ROW, INVALID_ROW, JIRA_ERROR) and errorRowIndex (zero-based index in rows[]): fix the request and preview again. The edit cannot be undone through Undo.",
+    "annotations": {
+      "title": "Edit rows of a Screen Scheme",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Required. true previews; apply only through start_operation."
+        },
+        "screenScheme": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id or exact name of an EXISTING Screen Scheme (issueTypes[].screenScheme from get_project_screens). Preview only."
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Preview only. The complete batch of rows {action, operation, screen}; one row per operation.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "ADD",
+                  "REPLACE",
+                  "REMOVE"
+                ],
+                "description": "ADD: the operation has no own row; REPLACE: own row or DEFAULT; REMOVE: delete the own row of CREATE, EDIT or VIEW."
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "DEFAULT",
+                  "CREATE",
+                  "EDIT",
+                  "VIEW"
+                ],
+                "description": "The operation whose screen changes; DEFAULT is the row every operation without an own row follows."
+              },
+              "screen": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Id or exact name of an existing screen. Required for ADD and REPLACE; forbidden for REMOVE."
+              }
+            },
+            "required": [
+              "action",
+              "operation"
+            ],
+            "oneOf": [
+              {
+                "properties": {
+                  "action": {
+                    "const": "REMOVE"
+                  },
+                  "screen": false
+                }
+              },
+              {
+                "properties": {
+                  "action": {
+                    "enum": [
+                      "ADD",
+                      "REPLACE"
+                    ]
+                  }
+                },
+                "required": [
+                  "screen"
+                ]
+              }
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "dryRun",
+        "screenScheme",
+        "rows"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "create_screen",
+    "description": "Create ONE new standalone screen, not assigned to a project/scheme/workflow. No project/projectKey or project required-field check. One fixed tab: Field Tab; its name cannot be set. Preview: {dryRun:true,name,fields}, optional description; fields are ordered {name,...} objects. Reuse exact Jira orderable names/IDs; system IDs include summary/description. Russian labels Тема/Описание match only current Jira display names, not built-in translations. On FAILED inspect fields[].errorCode/message/suggestions before retrying; never create a translated system field. A missing custom field needs typeKey from list_custom_field_types and is created globally (all projects/types): show this impact. Choose an obvious type from name/context and show it; if ambiguous, ask once with a catalog-backed default before selecting. Show preview, tab and effects; get confirmation. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Creation does not authorize assignment: project CREATE/EDIT/VIEW needs get_project_screens then its own set_project_operation_screens preview/confirmation with explicit all/selected issue types; offer unrequested assignment, never apply automatically. For workflow transition rules and a screen together, use one configure_workflow preview with newScreens plus screenKey; do not create or assign the screen in a separate operation. Standalone creation here does not assign a workflow transition.",
+    "annotations": {
+      "title": "Создание отдельного экрана",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Required. true creates a preview and planId; apply only through start_operation."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "New Jira screen name. Preview only."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional screen description. Preview only."
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Fields in screen order. Use an exact existing name/id. For a missing field, provide creation details after asking for an unclear type.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "description": "Exact existing field name/id, or the name of a custom field to create."
+              },
+              "description": {
+                "type": "string",
+                "description": "Only for a missing field. Optional custom field description."
+              },
+              "typeKey": {
+                "type": "string",
+                "description": "Only for a missing field. Type key returned by list_custom_field_types. Required when the field does not exist."
+              },
+              "searcherKey": {
+                "type": "string",
+                "description": "Only for a missing field. Optional compatible searcher key."
+              },
+              "options": {
+                "type": "array",
+                "maxItems": 100,
+                "description": "Only for a missing option-backed field. Ask the user for values; never invent them.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 255
+                    },
+                    "children": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "description": "Only for cascadingselect; exactly one child level.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          }
+                        },
+                        "required": [
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "dryRun",
+        "name",
+        "fields"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

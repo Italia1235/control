@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entitymodel>
+    <title>Native Jira Undo count subset</title>
+    <description>Native history and field value columns; deliberately no Count view entities.</description>
+    <copyright>Test fixture</copyright>
+    <author>control tests</author>
+    <version>1.0</version>
+    <entity entity-name="ChangeGroup" table-name="changegroup" package-name="">
+        <field name="id" type="numeric"/>
+        <field name="issue" col-name="issueid" type="numeric"/>
+        <prim-key field="id"/>
+    </entity>
+    <entity entity-name="OSHistoryStep" table-name="OS_HISTORYSTEP" package-name="">
+        <field name="id" col-name="ID" type="numeric"/>
+        <field name="entryId" col-name="ENTRY_ID" type="numeric"/>
+        <prim-key field="id"/>
+    </entity>
+    <entity entity-name="CustomFieldValue" table-name="customfieldvalue" package-name="">
+        <field name="id" type="numeric"/>
+        <field name="customfield" type="numeric"/>
+        <prim-key field="id"/>
+    </entity>
+    <entity entity-name="Label" table-name="label" package-name="">
+        <field name="id" type="numeric"/>
+        <field name="fieldid" type="numeric"/>
+        <prim-key field="id"/>
+    </entity>
+    <entity entity-name="SearchRequest" table-name="searchrequest" package-name="">
+        <field name="id" type="numeric"/>
+        <field name="request" col-name="reqcontent" type="extremely-long"/>
+        <prim-key field="id"/>
+    </entity>
+</entitymodel>

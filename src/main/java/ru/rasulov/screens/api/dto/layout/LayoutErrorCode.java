@@ -1,0 +1,6 @@
+package ru.rasulov.screens.api.dto.layout;
+
+public enum LayoutErrorCode {
+    VALIDATION_ERROR, UNKNOWN_FIELD, UNKNOWN_SCREEN, FIELD_NOT_ON_SCREEN, UNKNOWN_TAB, UNKNOWN_ANCHOR,
+    PROTECTED_FIELD, PREVIEW_STALE, JIRA_ERROR
+}

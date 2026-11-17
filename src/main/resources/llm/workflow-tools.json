@@ -1,0 +1,974 @@
+[
+  {
+    "name": "list_statuses",
+    "description": "Find existing Jira statuses by id or name: id, name, category (TO_DO, IN_PROGRESS, DONE, or UNDEFINED) and description. Optional discovery, not a prerequisite for configure_workflow: its preview resolves every supplied status by case-insensitive exact name and reuses existing statuses automatically. If the user supplied exact names and categories, go directly to configure_workflow dryRun=true with all statuses together; do not search each status first. Use this lookup for unclear names or unknown categories. To check a set of statuses, make ONE call with names (up to 30 exact names, each up to 60 characters after trimming), never one call per status: the answer is {lookup:[{name, result: FOUND | NOT_FOUND | AMBIGUOUS, statuses}]} in request order, without total; AMBIGUOUS lists every status with that name by id. With query, returns at most limit (default 20) out of total; narrow the query instead of requesting the full catalog.",
+    "annotations": {
+      "title": "Поиск статусов Jira",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Substring of the status id or name, any case. Omit only for a short initial sample."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "How many statuses to return. Default 20."
+        },
+        "names": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Exact status names to look up in ONE call, 1-30 names, each 1-60 characters after trimming; matched ignoring case and surrounding blanks. Use alone: not together with query or limit."
+        }
+      }
+    }
+  },
+  {
+    "name": "configure_workflow",
+    "description": "Configure ONE workflow with ONE domain preview, ONE confirmation and ONE start_operation. Exactly one target: create (new graph with a unique key per transition) or existing {workflow,version:ACTIVE|DRAFT,expectedRevision from get_workflow,changes?}. existing.changes optionally contains 1–100 structural edits: ADD_STATUS (exactly one existing statusId or newStatus:{name,category,description?}; category mandatory even for reuse), REPLACE_STATUS, UPDATE_TRANSITION, ADD_TRANSITION, REMOVE_TRANSITION, SET_INITIAL_STATUS, UPDATE_METADATA, REMOVE_STATUS. newStatus reuses a single trimmed CI-exact match with actual Jira properties unchanged, warns on category mismatch, refuses multiple matches with AMBIGUOUS_STATUS (choose statusId), or creates a GLOBAL status. Show CREATE/REUSE, actual categories/descriptions and global effects in the same consequences table. Never split off status creation or use another workflow as a workaround. Duplicate resolved statuses and statuses already represented in the original descriptor are refused, even with REMOVE/REPLACE in this plan. Omission preserves rules/screens-only behavior; null, [] and null entries are errors. Read get_workflow immediately before existing; use its revision and native stepId/actionId. ADD_TRANSITION may have a unique case-sensitive transitionKey without surrounding spaces, up to 255 characters. transitionRules uses exactly one surviving read actionId or this request's ADD_TRANSITION transitionKey for existing, or create.transitions[].key for create. Never guess newly allocated actionIds. Transition keys, step clientKey and newScreens.key are independent. Combine structural edits, supported validators, AND conditions and existing/new screens in this SAME preview. newScreens declares key, not screenKey; use transitionRules.screen:{action:SET,screenKey:<key>} to assign it. Reference every new screen key. SET/CLEAR screen in changes and transitionRules for the same target conflicts even when equal; KEEP/omission does not. Structural screens accept SET/CLEAR; transitionRules accepts KEEP or SET/CLEAR. create supports existing/new statuses, initialStatus, local/fromAny transitions and resolution; read get_resolutions for SET IDs. Missing rules blocks and empty rule arrays preserve current state: rules only ADD, never replace/remove/reorder. required_fields adds only missing recognized unconditional coverage. Validate final screens and all recognized final validators on added transitions, explicit screen SET/CLEAR targets (even no-op), and targets with nonempty requested validators/conditions (even already present). Deleted/unrelated transitions and rename/source/target/resolution/metadata-only changes do not widen that screen-validation scope. comment_required requires a usable final screen with view=fieldscreen; required_fields missing a screen field and unrecognized validators produce warnings. Read rules with get_workflow_validators/get_workflow_conditions. required_fields, comment_required and project_role require installed/enabled ScriptRunner 9.46.0; group and structural-only edits do not. group is Jira's User in group condition; project_role is ScriptRunner's Project role(s) condition and means ANY listed role in the issue project; invert means none. This tool only ADDS conditions that NARROW access. New conditions append directly to AND; OR/unknown root is refused. Existing unrelated data stays. SET writes screen metadata and view=fieldscreen together. newScreens creates standalone screens with one Field Tab and existing orderable field IDs in order; duplicate names warn and ambiguous existing names need IDs. Show final restrictions, consumers, warnings, created objects and targetVersion in ONE consequences table; ask ONE yes. Conditions narrow access for ALL consumers, including currently unused workflows. Group counts include inactive users and are observations, not stable access guarantees. ACTIVE without draft saves DRAFT; ACTIVE with draft is DRAFT_EXISTS; explicit DRAFT edits it; inactive saves main. No publication, assignment or issue migration; publish_workflow_draft and assign_workflow remain separate. Initial locked replan/fingerprint detects PREVIEW_STALE before writes; later dependency drift stops subsequent native steps with truthful FAILED/PARTIAL/UNKNOWN receipts, not an atomicity guarantee. Forward-only: no automatic rollback, no Undo through Audit and no mutation retries. Failure may leave created global statuses, screens or other objects; read every execution step's writeStatus and verification through get_operation. APPLIED alone is not verified success; APPLIED+UNAVAILABLE is PARTIAL. Success read-back returns transitionKey→actionId in transitions and clientKey→stepId/newScreens.key→screenId in objects; planned IDs are not persisted IDs on failure. Repeat start for this same configure plan recovers the same operation, never recreate by name. Preview: WOULD_CREATE, WOULD_CHANGE, UNCHANGED, EXISTS, FAILED; no plan for UNCHANGED. Apply: CREATED, UPDATED_INACTIVE, DRAFT_SAVED, PARTIAL, UNKNOWN, FAILED. Errors: VALIDATION_ERROR, UNKNOWN_WORKFLOW, UNKNOWN_STEP, UNKNOWN_TRANSITION, UNKNOWN_STATUS, AMBIGUOUS_STATUS, UNKNOWN_SCREEN, UNKNOWN_RESOLUTION, UNKNOWN_FIELD, UNKNOWN_GROUP, UNKNOWN_ROLE, AMBIGUOUS_ROLE, AMBIGUOUS_SCREEN, SCRIPTRUNNER_UNAVAILABLE, SCRIPTRUNNER_VERSION_UNSUPPORTED, UNSUPPORTED_DESCRIPTOR, TRANSITION_SCREEN_MISSING, DRAFT_EXISTS, VERSION_CONFLICT, SYSTEM_WORKFLOW, NAME_CONFLICT, MIGRATION_REQUIRED, PREVIEW_STALE, JIRA_ERROR. Preserve system/unsupported/round-trip, revision and occupancy protections. Limits: 100 changes/create transitions/transitionRules, 10 newScreens, 50 fields per screen/validator, 10 validators/conditions per transition, 20 roles per condition. Only lossless encoded JournalProgress receipt storage is limited to 32 KiB; expanded get_operation.execution may exceed it.",
+    "annotations": {
+      "title": "Настройка рабочего процесса",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Preview only. Execute the one confirmed plan through start_operation."
+        },
+        "create": {
+          "type": "object",
+          "description": "Create a new workflow. Exactly one of create or existing is required; never both. With create every transitionRules entry uses transitionKey, never actionId.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "description": "Required for preview. Workflow name as shown in Jira. Must not be blank or contain control characters. Ask the user if the description or the picture does not give one."
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of the workflow. Must contain only valid XML 1.0 characters; TAB, LF and CR are allowed."
+            },
+            "statuses": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 30,
+              "description": "Required for preview. Every status of the workflow, existing and new, each once (names are compared without case). The order is the order shown in Jira.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "Exact status name supplied by the user or a lookup. Preview automatically reuses a case-insensitive exact match in Jira; no separate lookup is required. Names typed in text are kept exactly. Diagram screenshots draw status names in UPPERCASE as a display artifact: do not ask about it; a new status gets normal case (first letter capital, rest lowercase), an existing one keeps its actual name."
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "TO_DO",
+                      "IN_PROGRESS",
+                      "DONE"
+                    ],
+                    "description": "Required only when the status is new. Supply the user's category directly (todo / туду = TO_DO, in progress / ин прогресс = IN_PROGRESS, done / доне = DONE), without a prior lookup or another question. A category clearly visible on a screenshot (label or unambiguous Jira category color) counts as supplied; ask only when it is unclear or contradicts other input. DONE is the Jira category, not the absence of outgoing transitions; clarify when names, categories and process meaning contradict. If unknown, discover existing categories or ask once for all unresolved new statuses. Ignored for existing statuses, which keep their category."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional. Only for a new status."
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            },
+            "initialStatus": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Required for preview. The status a new issue starts in, one of statuses. Must not be blank. Use the explicit start or diagram entry arrow; a sole TO_DO status is the start when no different start is specified. Ask only when the start remains ambiguous. All arrows are global transitions, not entry arrows."
+            },
+            "transitions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 100,
+              "description": "Required for preview. All requested transitions, including self-loops. For All / any-to-any, use one fromAny:true transition per target, not pairwise edges. Different names may share the same source and target. Duplicate normalized names within the same source/target and local/global scope are rejected.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "description": "Required. Transition button label. Preserve an explicitly supplied actual transition label; otherwise use the exact target status name without a naming question. Jira diagram source markers All / Все / Всё are NOT button labels. Use such a name only if the user explicitly named the button that way."
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "Nonblank source status, one of statuses; may equal to for a self-loop. Use when fromAny is omitted or false. For an All arrow, use fromAny:true and omit from; a blank from is treated as absent. Never put 'All' here."
+                  },
+                  "fromAny": {
+                    "type": "boolean",
+                    "description": "true = ONE global transition from ALL workflow statuses to to, INCLUDING to itself. Jira diagram source markers All / Все / Всё mean this flag, NOT a transition name or status. Unless a separate actual button label is supplied, name equals the exact target status name. For 'из любого статуса' or 'из любого в любой', create one such transition per target; three statuses need three transitions, not six edges or a cycle. Omit from; do not pass a source array or the string 'all'."
+                  },
+                  "to": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Required. Target status, one of the names in statuses. Must not be blank."
+                  },
+                  "screen": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Optional existing screen ID or exact name. For a new screen use newScreens and transitionRules screen SET with screenKey in this same preview; never split rules plus screen into separate operations."
+                  },
+                  "resolution": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "description": "Optional object or null, never a string. Null and omission both select the effective default below, not always preserve. Read get_resolutions first; replace <catalog ID> below with a returned canonical ID, never a name. When an English and a non-English catalog value mean the same, use the English value's ID unless the user explicitly insists on the other. Default to one result per DONE target, preserving explicitly different incoming results. SET example: {\"action\":\"SET\",\"value\":\"<catalog ID>\"}. CLEAR example: {\"action\":\"CLEAR\"}, with no value. Omission example (preserve on non-DONE to non-DONE): {\"name\":\"Continue\",\"from\":\"Open\",\"to\":\"Working\"} with no resolution property. PRESERVE is an output action, not input; never send {\"action\":\"PRESERVE\"}. SET is required when entering DONE from another status or through fromAny; a DONE self-loop preserves by omission or may SET. CLEAR is allowed on any transition into a non-DONE status and rejected into DONE. It is automatic for DONE to non-DONE and fromAny to non-DONE when resolution is omitted or null. On non-DONE to non-DONE omission preserves; send explicit CLEAR there only when the user asks to reset the resolution. Existing statuses keep their actual categories. If the requested effect conflicts, clarify it once rather than probing previews. Preview reports effective actions.",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "SET",
+                          "CLEAR"
+                        ],
+                        "description": "Required for a non-null resolution object. Exact uppercase SET or CLEAR; never PRESERVE. Omit resolution to select the effective default."
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Existing canonical Resolution ID, without leading/trailing spaces or control characters; required for SET, forbidden for CLEAR."
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Unique request-local key, addressed by transitionRules.transitionKey."
+                  }
+                },
+                "required": [
+                  "name",
+                  "to",
+                  "key"
+                ]
+              }
+            }
+          },
+          "required": [
+            "name",
+            "statuses",
+            "initialStatus",
+            "transitions"
+          ],
+          "additionalProperties": false
+        },
+        "existing": {
+          "type": "object",
+          "description": "Change an existing workflow read with get_workflow. Exactly one of create or existing is required. Optional changes performs 1–100 structural edits; omission preserves the old rules/screens-only behavior, while null, an empty array and null entries are errors. Every transitionRules entry uses exactly one actionId of a surviving transition from the read version or transitionKey of an ADD_TRANSITION in this request. Never guess newly allocated actionIds.",
+          "properties": {
+            "workflow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "DRAFT"
+              ]
+            },
+            "changes": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 100,
+              "description": "Optional structural edits, applied in dependency-safe order. ADD_STATUS requires exactly one statusId or newStatus:{name,category,description?}; newStatus category is mandatory, even for reuse. A new name creates a global status; one CI-exact match reuses its actual properties unchanged; multiple matches require explicit statusId. Fields not named are preserved; null is not deletion. transitionKey is allowed only for ADD_TRANSITION, is unique and independent of step clientKey and newScreens.key. SET/CLEAR screen in both changes and transitionRules for the same transition is rejected even when equal; KEEP or omission does not conflict.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "op": {
+                    "type": "string",
+                    "enum": ["UPDATE_TRANSITION", "ADD_TRANSITION", "REMOVE_TRANSITION", "ADD_STATUS", "REMOVE_STATUS", "REPLACE_STATUS", "SET_INITIAL_STATUS", "UPDATE_METADATA"],
+                    "description": "ADD_STATUS needs exactly one statusId or newStatus and optional clientKey; it adds one step with explicit native-ID binding. newStatus requires name/category, with optional description; CREATE has a global effect, REUSE does not update global properties. REPLACE_STATUS needs stepId/statusId and is refused for a step belonging to the active version. UPDATE_TRANSITION needs actionId and at least one name/source/target/screen/resolution edit. ADD_TRANSITION needs name/source and exactly one targetStepId/targetClientKey, with optional screen/resolution/transitionKey. REMOVE_TRANSITION needs actionId and cannot remove the initial action. SET_INITIAL_STATUS needs exactly one stepId/clientKey and changes only the initial action target. UPDATE_METADATA needs description (empty clears it), never renames the workflow. REMOVE_STATUS needs stepId, never deletes the global status or cascades transitions; redirect/remove every reference in the same request. Common/conditional/join/split and occupied-status protections remain; patcher applies its dependency-safe order, not arbitrary input order."
+                  },
+                  "actionId": {
+                    "type": "integer",
+                    "description": "Native id of an existing transition from get_workflow."
+                  },
+                  "stepId": {
+                    "type": "integer",
+                    "description": "Native id of an existing step from get_workflow."
+                  },
+                  "statusId": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "description": "Id of an existing global status from list_statuses."
+                  },
+                  "newStatus": {
+                    "type": "object",
+                    "description": "ADD_STATUS only, mutually exclusive with statusId. Single CI-exact name match reuses canonical Jira properties; multiple matches are AMBIGUOUS_STATUS. No match creates one global status. Category is always mandatory and valid, even for reuse; mismatch warns, never updates the existing category. Description applies only on creation.",
+                    "properties": {
+                      "name": {"type": "string", "minLength": 1, "maxLength": 60},
+                      "category": {"type": "string", "enum": ["TO_DO", "IN_PROGRESS", "DONE"]},
+                      "description": {"type": "string"}
+                    },
+                    "required": ["name", "category"],
+                    "additionalProperties": false
+                  },
+                  "clientKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "Local key of an ADD_STATUS step, or the step named by SET_INITIAL_STATUS. Not a transitionKey."
+                  },
+                  "transitionKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "description": "Optional ADD_TRANSITION-only key for transitionRules in this request. Strict text without leading/trailing spaces, unique with exact case-sensitive comparison. Forbidden on every other op."
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "description": "Transition name."
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 4000,
+                    "description": "Workflow description for UPDATE_METADATA."
+                  },
+                  "source": {
+                    "type": "object",
+                    "properties": {
+                      "stepId": {"type": "integer"},
+                      "clientKey": {"type": "string"},
+                      "fromAny": {"type": "boolean"}
+                    },
+                    "description": "Exactly one existing stepId, local ADD_STATUS clientKey, or fromAny:true.",
+                    "additionalProperties": false
+                  },
+                  "targetStepId": {
+                    "type": "integer",
+                    "description": "Existing target step. Exactly one of targetStepId or targetClientKey when specifying a target."
+                  },
+                  "targetClientKey": {
+                    "type": "string",
+                    "description": "Local ADD_STATUS step key. Not a transitionKey."
+                  },
+                  "screen": {
+                    "type": "object",
+                    "properties": {
+                      "action": {"type": "string", "enum": ["SET", "CLEAR"]},
+                      "screenId": {"type": "integer", "description": "Existing screen ID; required only for SET and forbidden for CLEAR."}
+                    },
+                    "required": ["action"],
+                    "additionalProperties": false
+                  },
+                  "resolution": {
+                    "type": ["object", "null"],
+                    "description": "ADD_TRANSITION and UPDATE_TRANSITION accept exact uppercase SET, CLEAR or PRESERVE. SET requires a canonical get_resolutions ID and DONE target. CLEAR/PRESERVE accept only absent/null value; CLEAR needs a non-DONE target. PRESERVE removes only the standard resolution writer. Entering DONE from another category/global needs SET. Omission/null keeps UPDATE_TRANSITION's rule; ADD_TRANSITION defaults to CLEAR leaving DONE/global to non-DONE, otherwise PRESERVE unless SET is required.",
+                    "properties": {
+                      "action": {"type": "string", "enum": ["SET", "CLEAR", "PRESERVE"]},
+                      "value": {"type": ["string", "null"], "description": "Canonical nonblank resolution ID without leading/trailing spaces for SET; absent/null for CLEAR/PRESERVE."}
+                    },
+                    "required": ["action"],
+                    "additionalProperties": false
+                  }
+                },
+                "required": ["op"],
+                "additionalProperties": false
+              }
+            },
+            "expectedRevision": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "workflow",
+            "version",
+            "expectedRevision"
+          ],
+          "additionalProperties": false
+        },
+        "newScreens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "description": {
+                "type": "string"
+              },
+              "fieldIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "maxItems": 50,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "key",
+              "name",
+              "fieldIds"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10
+        },
+        "transitionRules": {
+          "type": "array",
+          "description": "Rules per transition: screen, validators, conditions. Every entry addresses exactly one transitionKey (create.transitions[].key or existing.changes ADD_TRANSITION.transitionKey) or actionId (a surviving transition read with get_workflow, existing only), never both or neither. Duplicate targets and unknown references are errors.",
+          "items": {
+            "type": "object",
+            "description": "One rule for ONE transition. Exactly one transitionKey or actionId is required. A create key names create.transitions; an existing key names this request's ADD_TRANSITION, never a step clientKey. screen, addValidators and addConditions are optional.",
+            "properties": {
+              "transitionKey": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Key from create.transitions[].key or an ADD_TRANSITION in existing.changes. With existing use actionId for a surviving read transition. Exactly one of transitionKey or actionId per rule."
+              },
+              "actionId": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Action id of an existing transition, read from get_workflow. Only for existing; with create use transitionKey. Exactly one of actionId or transitionKey per rule."
+              },
+              "screen": {
+                "type": [
+                  "string",
+                  "object"
+                ],
+                "description": "Either the string KEEP (no screen change), a SET object naming exactly one of screenId, screenName or screenKey, or a CLEAR object with no screen reference. screenKey points to newScreens[].key in this request, never a property in newScreens itself. Every declared screen must be used. Explicit SET/CLEAR here conflicts with SET/CLEAR in changes for the same transition, even if equal.",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "SET",
+                      "CLEAR"
+                    ],
+                    "description": "Required in the object form: SET needs exactly one screen reference; CLEAR accepts none."
+                  },
+                  "screenId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Existing screen ID. Exactly one of screenId, screenName, screenKey."
+                  },
+                  "screenName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Exact name of an existing screen. Exactly one of screenId, screenName, screenKey."
+                  },
+                  "screenKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Key of a screen from newScreens[].key in this request. Exactly one of screenId, screenName, screenKey."
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              "addValidators": {
+                "type": "array",
+                "maxItems": 10,
+                "description": "Validators to add to the transition. Each item is {template, parameters}: comment_required takes no parameters; required_fields requires parameters.fieldIds.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "template": {
+                      "type": "string",
+                      "enum": [
+                        "comment_required",
+                        "required_fields"
+                      ],
+                      "description": "comment_required: parameters must be omitted or empty. required_fields: parameters with fieldIds is required."
+                    },
+                    "parameters": {
+                      "type": "object",
+                      "description": "Only for required_fields: {\"fieldIds\":[...]} is required there. For comment_required omit parameters or send an empty object; fieldIds is rejected.",
+                      "properties": {
+                        "fieldIds": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 50,
+                          "uniqueItems": true,
+                          "description": "Only for required_fields: ids of the fields that must be filled on this transition, each once.",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "template"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "addConditions": {
+                "type": "object",
+                "description": "Conditions that restrict who can execute the transition; all of them must hold (operator AND).",
+                "properties": {
+                  "operator": {
+                    "type": "string",
+                    "enum": [
+                      "AND"
+                    ],
+                    "description": "Exactly AND."
+                  },
+                  "rules": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "description": "Conditions to add. Each item is {template, parameters}: group requires parameters.group; project_role requires parameters.roles and may set invert.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "template": {
+                          "type": "string",
+                          "enum": [
+                            "group",
+                            "project_role"
+                          ],
+                          "description": "group: parameters with group is required. project_role: parameters with roles is required, invert is optional."
+                        },
+                        "parameters": {
+                          "type": "object",
+                          "description": "Only the keys of the chosen template: group needs {\"group\":\"<existing Jira group>\"}; project_role needs {\"roles\":[...]} and may add \"invert\":true. Keys of the other template are rejected.",
+                          "properties": {
+                            "group": {
+                              "type": "string",
+                              "minLength": 1,
+                              "description": "Only for template group: name of an existing Jira group."
+                            },
+                            "roles": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 20,
+                              "uniqueItems": true,
+                              "description": "Only for template project_role: project roles by name (string) or id (integer); ANY listed role in the issue project passes.",
+                              "items": {
+                                "type": [
+                                  "string",
+                                  "integer"
+                                ],
+                                "minLength": 1,
+                                "minimum": 1
+                              }
+                            },
+                            "invert": {
+                              "type": "boolean",
+                              "description": "Only for template project_role: true means the user has NONE of the listed roles."
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "template",
+                        "parameters"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "operator",
+                  "rules"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "dryRun"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "copy_workflow",
+    "description": "Create ONE exact, standalone copy of an existing workflow's main (active or saved) version, including its steps, transitions and rules. Use this for replacing/removing an occupied status or another change unavailable in an active workflow's draft, including a workflow already private to one project (ALREADY_OWN). Preview: {dryRun:true,workflow:\"<exact source name>\",name:\"<new name>\"}, optional description; omitted description inherits the source description. The copy is inactive and is not assigned to any scheme or project; the original and existing issues are unchanged. A source draft is NOT copied: publish_workflow_draft first only if that draft is explicitly wanted, with its own preview and confirmation. This is not rename and not assignment. Inspect the copy with get_workflow, then edit it with configure_workflow.existing.changes and the read revision; separately preview assign_workflow with statusMappings where needed. The workflow name changes. Show the preview and obtain confirmation, then apply its planId only through start_operation.",
+    "annotations": {
+      "title": "Точная копия рабочего процесса",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. Must be true for this public preview tool. Apply a confirmed planId through start_operation, not copy_workflow."
+        },
+        "workflow": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact name of the source workflow; its main version is copied, not its draft."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "New, unused workflow name; trimmed and compared without case."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of the copy; omitted means inherit the source description."
+        }
+      },
+      "required": ["dryRun", "workflow", "name"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_project_workflows",
+    "description": "Read the complete current workflow configuration of one project, without reading issues or native workflow entries by default. ALWAYS call this before assigning a workflow; show issue type -> effective workflow, defaultWorkflow and scheme details (default, draft, sharing). includeIssueCounts defaults to false: issueCountsStatus=NOT_REQUESTED, issues/statuses=null; unknown counts NEVER mean no issues. Only when statistics are needed, explicitly set includeIssueCounts=true: this linearly reads ALL project issues by type/status, without native-entry diagnosis or a 10-second bound. COMPLETE means exact counts, including additional issue types found in issues but absent from the project's current type scheme. ERROR means statistics unavailable: configuration remains complete, counts are null and issueCountsError explains the failure. Configuration-only mode guarantees all current project types, not historical types found only in issues. Neither mode proves native entries match the scheme or migration is safe. The project is a key or name (use list_projects if unsure). EXAMPLES: {\"project\":\"ABC\"}; statistics: {\"project\":\"ABC\",\"includeIssueCounts\":true}.",
+    "annotations": {
+      "title": "Чтение рабочих процессов проекта",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Project key or name, e.g. ABC. Use list_projects to find it."
+        },
+        "includeIssueCounts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Explicitly request a full linear count of project issues by type/status, including historical types; never inspects native entries."
+        }
+      },
+      "required": [
+        "project"
+      ]
+    }
+  },
+  {
+    "name": "assign_workflow",
+    "description": "Connect an EXISTING workflow to a project: to all its issue types, or to the named ones. The plugin changes the workflow scheme and migrates the project's issues to the new workflow. An issue keeps its status when the target workflow has that status. If an occupied status is absent, the user may explicitly map it to a status in the target workflow with statusMappings; the issue's other fields and history are preserved. The WHOLE call is refused (STATUS_CONFLICT) and nothing is changed until every absent occupied status is mapped. Dialogue rules: (1) Call get_project_workflows first in configuration-only mode and show issue type -> current workflow. Unknown counts are not zero; obtain affected counts/statuses from assign_workflow preview. Request includeIssueCounts=true only when full project statistics are needed. (2) If the user did not say whether the workflow is for the whole project or for which issue types, ASK; never guess. If the user says 'all' or 'the whole project', use allIssueTypes=true, otherwise list the issue types. Give exactly one of them. (3) If selected issue types use another workflow, call assign_workflow with dryRun=true. On STATUS_CONFLICT, show every blocking status and issue count from issueTypes[].statuses where inWorkflow=false, show suggestions as the valid target statuses, and ask the user which target status each blocking status maps to. Never infer mappings. Preview again with every answer as {\"from\":\"old\",\"to\":\"target\"}. (4) Show the successful preview as a table: each issue type and verdict (ALREADY = already assigned, READY = no issues, MIGRATE = issues migrate), each occupied status and mappedTo when its status changes, the scheme action, affected issues, and warnings. Keep planId and ask for confirmation. (5) Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. READ-BACK AFTER APPLY. ASSIGNED is authoritative: the workflow scheme was assigned, issue migration completed, and the final sweep completed. After ASSIGNED, finish the operation immediately. Do not call get_project_workflows, repeat assign_workflow, or independently verify the result. PARTIALLY_ASSIGNED means the scheme was assigned but the final sweep could not migrate or verify every concurrent issue (or an error stopped the call after the assignment was confirmed by readback). UNKNOWN means an error stopped the call after a write may have been made and Jira did not confirm the assignment: the message lists what is confirmed and what is not; never repeat the same plan, and say that the outcome is not confirmed, not that nothing changed. Show the message exactly; a configuration read cannot inspect native entries or prove migration complete. If no reliable apply result was received because of a transport or protocol failure, call get_project_workflows at most once to inspect configuration, without claiming native migration is verified, and do not repeat apply. Never poll get_project_workflows. Never repeat it for the same project unless an intervening successful write or an external event could have changed the result. Idempotent: if every requested issue type has the workflow already the answer is ALREADY_ASSIGNED and nothing is written. newScheme: leave it false unless the user asked for a scheme of their own; no need to ask. The project's own scheme is changed in place; a project on the system default gets a new scheme automatically. Errors: SCHEME_SHARED means other projects use the scheme: show suggestions, ask whether this project should get its own scheme, then preview with newScheme=true if yes. STATUS_CONFLICT means one or more mappings are still missing: ask for them as above. DRAFT_EXISTS: publish or discard the draft in Jira, or use newScheme=true. TOO_MANY_ISSUES: at most 10000 issues migrate per call; split by issue types. UNKNOWN_WORKFLOW, UNKNOWN_PROJECT, UNKNOWN_ISSUE_TYPE, ISSUE_TYPE_NOT_IN_PROJECT: use suggestions, do not guess. PREVIEW_STALE: Jira changed or the preview expired; run a fresh preview and ask for confirmation again. JIRA_ERROR: tell the user exactly what message says was undone and what was not. The tool runs synchronously; a big project can take minutes. Calls do not overlap: if another call is running, wait and retry the same request. To create and connect a workflow, finish configure_workflow first, then this protocol. EXAMPLES: one issue type: {\"dryRun\":true,\"project\":\"ABC\",\"workflow\":\"Bug flow\",\"issueTypes\":[\"Bug\"]}; mapped status: {\"dryRun\":true,\"project\":\"ABC\",\"workflow\":\"Bug flow\",\"issueTypes\":[\"Bug\"],\"statusMappings\":[{\"from\":\"In Review\",\"to\":\"In Progress\"}]}; whole project: {\"dryRun\":true,\"project\":\"ABC\",\"workflow\":\"Bug flow\",\"allIssueTypes\":true}. The workflow must exist. Project and issue type names come from list_projects, list_issue_types and get_project_workflows. ERRORS. A FAILED result has errorCode, message and suggestions. Fix it from those values or ask; never guess. Dependency order for project setup: add the issue type to the project first, then assign_workflow, then configure its screens.",
+    "annotations": {
+      "title": "Назначение рабочего процесса проекту",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Required. Must be true for this public preview tool. Apply a confirmed planId through start_operation, not assign_workflow."
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Project key or name. Use list_projects to find it. Assignments to the same project run one at a time: preview, confirm and apply one before previewing the next."
+        },
+        "workflow": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of an existing workflow (compared without case). A workflow that does not exist yet is made with configure_workflow first."
+        },
+        "allIssueTypes": {
+          "type": "boolean",
+          "description": "true = the workflow goes to every issue type of the project, including issue types that have issues in it but are not in its issue type scheme. Give this OR issueTypes, not both."
+        },
+        "issueTypes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Issue types of the project that get the workflow (names or ids, see get_project_workflows); the others keep their workflow. Each once. Give this OR allIssueTypes, not both.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "newScheme": {
+          "type": "boolean",
+          "description": "true = give the project a workflow scheme of its own instead of changing the current one."
+        },
+        "statusMappings": {
+          "type": "array",
+          "description": "Preview only. Explicit mappings for occupied statuses absent from the target workflow. Include every blocking status exactly once, using names returned by STATUS_CONFLICT and a target name from suggestions. Never infer a mapping.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Current status name."
+              },
+              "to": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Status name in the target workflow."
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "dryRun",
+        "project",
+        "workflow"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "allIssueTypes"
+          ],
+          "properties": {
+            "allIssueTypes": {
+              "enum": [
+                true
+              ]
+            }
+          },
+          "not": {
+            "required": [
+              "issueTypes"
+            ]
+          }
+        },
+        {
+          "required": [
+            "issueTypes"
+          ],
+          "properties": {
+            "allIssueTypes": {
+              "enum": [
+                false
+              ]
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "clone_project_workflows",
+    "description": "Give ONE project its own copy of the workflow setup it shares with other projects, so that it can be changed later without touching them: an exact copy of the project's workflow scheme and, as asked, of its workflows, under new names (default: named after the project, see NAMES), connected to the project. The originals are never changed or deleted, so the other projects notice nothing. The project's issues move to the copies and keep their status (the copies have exactly the same statuses and transitions, so there is nothing to convert). Copies are exact: steps, transitions, conditions, validators, post-functions and properties, including settings of other apps, are copied as they are. WHAT TO COPY (scope). ASK, do not guess: the words 'the scheme', 'the whole scheme', 'detach the project', 'make a copy for the project' do NOT say whether the workflows are copied too. Ask in one short message whether the workflows of the scheme are to be copied as well: (a) no, only the scheme; (b) yes, all of them that other projects use too; (c) only some (which?). Decide without asking only when the user says it in words: 'only the scheme', 'keep the workflows', 'without workflows' = SCHEME_ONLY; 'the scheme and all its workflows', 'everything' = ALL_WORKFLOWS; workflows the user named = SELECTED. SCHEME_ONLY = only the workflow scheme; the project keeps using the same workflows (a change to such a workflow still changes it for every project that uses it). ALL_WORKFLOWS = the scheme and every workflow of it that other projects use too (workflows nobody else uses get no copy: they are already the project's own, verdict ALREADY_OWN). SELECTED = the scheme and only the workflows named in 'workflows' (names from get_project_workflows), the others stay shared (verdict KEEP). If the project's scheme is its own already and its workflows are shared, the scheme is changed in place to point at the copies; if nothing is shared any more the answer is ALREADY_SEPARATE and nothing is written. NAMES. A copy is named after the project, not after the project it was taken from: if the old name starts with the key of another project that uses it, that key is replaced by this project's key ('BUS: Process scheme' for project SPMT becomes 'SPMT: Process scheme', 'BUS_FLOW_v1' becomes 'SPMT_FLOW_v1'); any other name gets 'KEY: ' in front. ' v2', ' v3' is added only when the name is taken. The dry run shows every name: show them to the user and let them change any with schemeName and workflowNames. DIALOGUE. (1) Call get_project_workflows first and show the user the scheme, who shares it (otherProjects) and the workflow of each issue type. (2) Agree the scope (see WHAT TO COPY: ask whether the workflows are copied too). (3) Call with dryRun=true and show a table: each workflow of the scheme, its verdict (COPY, KEEP, ALREADY_OWN), the name of the copy, how many other projects use it (otherProjects, otherProjectNames), and the scheme change (scheme.action CREATE = a new scheme under scheme.name; UPDATE = the project's own scheme is changed; currentScheme is what the project has now). Say plainly that the old scheme and workflows stay as they are for the other projects, and show the names of the copies (see NAMES): the user may choose other ones with schemeName and workflowNames. Read the message: it can carry a warning. If it says that a workflow to copy has a draft, tell the user plainly that the draft will not be in the copy (the copy is made from the main version), and go on; publish the draft only if the user explicitly asks for the draft's changes. (4) Keep the preview planId and expiresAt; Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. never resending project, scope or names. PREVIEW_STALE means the plan expired, was consumed, is unavailable for this user or the Jira state changed: repeat the preview and obtain confirmation again; never retry apply with the stale token. Do not ask about the number of issues: they move with their status. Idempotent: once nothing that was asked for is shared any more, the answer is ALREADY_SEPARATE and nothing is written (name the copies, not the originals, when you repeat a SELECTED call: an original that the project no longer uses is WORKFLOW_NOT_IN_SCHEME). One project per call. ERRORS. DRAFT_EXISTS: the workflow scheme has a draft, which a copy would leave out; this tool and publish_workflow_draft do not publish scheme drafts: tell the user the scheme draft must be published or discarded first, then repeat; do not work around it. WORKFLOW_NOT_IN_SCHEME, UNKNOWN_WORKFLOW, UNKNOWN_PROJECT: use suggestions, do not guess. NAME_TAKEN: ask the user for another name. TOO_MANY_ISSUES: at most 10000 issues move per call; copy fewer workflows per call with SELECTED. JIRA_ERROR: the message says what was undone and what was not; tell the user. The tool moves issues synchronously, so a big project can take minutes. Calls do not overlap (this one shares the lock of assign_workflow): if the tool answers that another call is running, wait and retry the same request. EXAMPLES: {\"dryRun\":true,\"project\":\"ABC\",\"scope\":\"ALL_WORKFLOWS\"}; {\"dryRun\":true,\"project\":\"ABC\",\"scope\":\"SELECTED\",\"workflows\":[\"Bug flow\"]}; {\"dryRun\":true,\"project\":\"ABC\",\"scope\":\"SCHEME_ONLY\",\"schemeName\":\"ABC: Support scheme\"}. The project and workflow names come from list_projects and get_project_workflows, never from memory. On FAILED, use errorCode, message and suggestions to fix the request or ask; never guess.",
+    "annotations": {
+      "title": "Копирование рабочих процессов проекта",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. Must be true for this public preview tool. Apply a confirmed planId through start_operation, not clone_project_workflows."
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Project key or name. Use list_projects to find it."
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "SCHEME_ONLY",
+            "ALL_WORKFLOWS",
+            "SELECTED"
+          ],
+          "description": "What gets a copy: only the scheme, the scheme and all its shared workflows, or the scheme and the workflows in 'workflows'. Ask the user whether the workflows are copied too; 'the scheme' alone does not answer it."
+        },
+        "workflows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Only with scope SELECTED: names of workflows of the project's scheme to copy (see get_project_workflows). Each once.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schemeName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Optional name of the new scheme. Default: named after the project ('SPMT: ' plus the old name, a key of another project at the start of the old name is replaced), ' v2' only if taken. Only when the scheme is copied."
+        },
+        "workflowNames": {
+          "type": "object",
+          "description": "Optional names of the copies: source workflow name to copy name.",
+          "additionalProperties": {"type": "string", "minLength": 1, "maxLength": 255}
+        }
+      },
+      "required": ["dryRun", "project", "scope"],
+      "oneOf": [
+        {"properties": {"scope": {"enum": ["SELECTED"]}}, "required": ["workflows"]},
+        {"properties": {"scope": {"enum": ["SCHEME_ONLY", "ALL_WORKFLOWS"]}},
+          "not": {"required": ["workflows"]}}
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "publish_workflow_draft",
+    "description": "Publish the draft of ONE existing active workflow: Jira's own publication makes the draft the active version for EVERY project and scheme that uses the workflow, not only for the project at hand. Use it when the user asks to publish a draft; never send the user to Jira to do it. DIALOGUE. (1) Call with dryRun=true and the exact workflow name. (2) WOULD_PUBLISH: show a table of what the draft changes (changes: addedStatuses, removedStatuses, addedTransitions, removedTransitions, changedTransitions; descriptorChanged means the definition differs, also in what the lists do not name), every affected project (affectedProjects, affectedProjectNames, affectedSchemes) and the message; say plainly that the shared original changes for all of them and that there is no undo and no backup copy. Ask ONE question to publish; an earlier yes to a copy or another change is not a yes to publish. (3) Apply only via start_operation with {toolName:\"publish_workflow_draft\", arguments:{dryRun:false, planId}}; never directly, never resending the workflow. (4) After PUBLISHED continue the user's request: preview clone_project_workflows (or the step that was blocked) again, show it and ask again; never reuse a plan obtained before the publication. If the publication succeeds and a later step fails, report that the workflow is published and the rest is not done. OUTCOMES. NO_DRAFT: nothing to publish, nothing changed; continue. UNKNOWN_WORKFLOW: suggestions are the workflows that have drafts; use them, do not guess. PUBLISH_REFUSED: Jira refuses this draft; show its reasons, nothing changed. PREVIEW_STALE: the plan expired or was consumed, or the workflow, its draft or its users changed: preview again and ask again. JIRA_ERROR: Jira failed or the result could not be confirmed; tell the user exactly the message and do not repeat the publication. FAILED always carries errorCode and message. A workflow scheme draft is a different object: this tool never publishes it. EXAMPLE: {\"dryRun\":true,\"workflow\":\"Lot Buy\"}.",
+    "annotations": {
+      "title": "Публикация черновика рабочего процесса",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. Must be true for this public preview tool. Apply a confirmed planId through start_operation, not publish_workflow_draft."
+        },
+        "workflow": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Exact name of the active workflow whose draft is published, from get_project_workflows."
+        }
+      },
+      "required": ["dryRun", "workflow"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_workflow",
+    "description": "Read ONE version of an existing workflow as a graph with stable ids: steps (stepId, statusId, status name/category/description, initial), transitions (actionId, kind INITIAL/LOCAL/GLOBAL/COMMON, source and target step ids, screenId, resolution SET/CLEAR/PRESERVE/UNKNOWN, and per-transition unsupported reasons), structural capabilities for configure_workflow.existing.changes, consumers (schemes including drafts, projects, issue types; complete counts, bounded lists), active-to-draft draftDiff and revision. ALWAYS read immediately before configure_workflow.existing and pass revision as expectedRevision. Address existing transitions by actionId and steps by stepId, never repeating names; new ADD_TRANSITION targets use request-local transitionKey in transitionRules, never guessed actionIds. version is required: ACTIVE (saved main for inactive) or DRAFT; missing draft is an error, never another version. No XML or third-party function arguments are returned; unrecognized resolution is UNKNOWN, not PRESERVE. Oversized graphs are refused, not cut.",
+    "annotations": {
+      "title": "Чтение рабочего процесса",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "workflow": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Exact workflow name, from get_project_workflows."
+        },
+        "version": {
+          "type": "string",
+          "enum": ["ACTIVE", "DRAFT"],
+          "description": "ACTIVE or DRAFT. Required."
+        }
+      },
+      "required": ["workflow", "version"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "rename_workflow",
+    "description": "Rename ONE workflow with Jira's own rename (the one the admin UI uses): Jira stores the workflow under the new name and rewrites scheme mappings including scheme drafts; the definition is not changed. Only workflows used by no project can be renamed; ACTIVE_WORKFLOW refuses active ones. Copying and assigning is NOT rename (different identity and migration) and is offered only as a separate explicit choice. Also refused: SYSTEM_WORKFLOW, IN_USE (issues have entries under the old name), NAME_TAKEN, RENAME_REFUSED (native reasons, including a draft). This is not UPDATE_METADATA in configure_workflow.existing.changes, which changes only the description. Preview dryRun=true with workflow and newName. WOULD_RENAME: show rewritten schemes and explain that external references to the old name need updating; ask ONE question. UNCHANGED/FAILED give no plan. After yes use start_operation with toolName rename_workflow and arguments {dryRun:false,planId}. RENAMED is proven success. After JIRA_ERROR never claim nothing changed or retry: read both names. There is no Undo.",
+    "annotations": {
+      "title": "Переименование рабочего процесса",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. Must be true for this public preview tool. Apply a confirmed planId through start_operation, not rename_workflow."
+        },
+        "workflow": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Exact current name of the workflow."
+        },
+        "newName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "The new name, without leading or trailing spaces."
+        }
+      },
+      "required": ["dryRun", "workflow", "newName"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "update_status",
+    "description": "Change the name, description or category of ONE GLOBAL status. The change applies to every workflow (active, inactive and drafts), every project and every issue that uses the status; it is not scoped to a project. For 'only in this project the status should be called differently' do NOT use this tool: that needs a separate status and an explicit replacement of the link. Give the exact statusId (list_statuses) and only the fields to change (an omitted field is kept; description '' clears it). Jira validates the name against all statuses. A category change does not set or clear the resolution of existing issues and does not rewrite any transition's resolution rule. A rename breaks saved JQL that matches the status by its old name. DIALOGUE. (1) dryRun=true. (2) WOULD_UPDATE: show changes, workflowCount/projectCount with the listed names and the warnings; the user must understand the change is global; ask ONE question. UNCHANGED/FAILED give no plan. (3) After the yes: start_operation with toolName update_status and arguments {dryRun:false, planId}. UPDATED is the proven result. After JIRA_ERROR do not say nothing changed and do not repeat: read the status. Deleting a status is not available. There is no Undo.",
+    "annotations": {
+      "title": "Изменение глобального статуса",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. Must be true for this public preview tool. Apply a confirmed planId through start_operation, not update_status."
+        },
+        "statusId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "description": "Id of the existing status, from list_statuses."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "New name."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 4000,
+          "description": "New description; an empty string clears it."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["TO_DO", "IN_PROGRESS", "DONE"],
+          "description": "New status category."
+        }
+      },
+      "required": ["dryRun", "statusId"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_workflow_validators",
+    "description": "Read the validators of every transition of ONE version of an existing workflow, in descriptor order, and whether ScriptRunner for Jira can be configured: scriptRunner {installed, enabled, version, supported, reason}. Per transition: actionId, name, screenId/screenName and validators[] with position, kind and problem. REQUIRED_FIELDS is a recognized ScriptRunner 'Field(s) required' validator: fieldIds, fields[{id,name}] and conditional (true when it has a condition; a conditional one does not make a field required). COMMENT_REQUIRED is a recognized ScriptRunner 'Comment required' validator in its exact form (no arguments are shown); its problem is null, or a diagnosis that the transition has no usable screen (none assigned, its id is not a number, Jira has no such screen, or the action lacks view=\"fieldscreen\" although the screen is assigned: it was assigned by an older Control build, and screenId/screenName are still filled; fix it with configure_workflow screen SET of the same screen together with any requested rule additions), so ScriptRunner fails every execution of the transition with 'no screen is in use'. The comment script in any other form is OTHER. OTHER is every other validator: only its type and class.name/canned-script, never its arguments. problem is null for every kind but COMMENT_REQUIRED. Reading works without ScriptRunner. Returns the same revision as get_workflow: pass it as expectedRevision of configure_workflow. Use it before configure_workflow to find the actionId, what is already required and whether the transition has a screen.",
+    "annotations": {
+      "title": "Чтение валидаторов рабочего процесса",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "workflow": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Exact workflow name, from get_project_workflows."
+        },
+        "version": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "DRAFT"
+          ],
+          "description": "ACTIVE or DRAFT. Required."
+        }
+      },
+      "required": [
+        "workflow",
+        "version"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_workflow_conditions",
+    "description": "Read the conditions of every transition of ONE version of an existing workflow, as a tree in descriptor order, and whether ScriptRunner for Jira can be configured: scriptRunner {installed, enabled, version, supported, reason}. Per transition: actionId, name and root: null when the transition has no conditions, otherwise the root node. A node has position (from 1 inside its parent; the root is 1) and kind. COMPOUND is a group of conditions: operator AND or OR (a root without type is AND) and children[]. GROUP is a Jira 'User in group' condition (UserInGroupCondition) in its exact form: group. PROJECT_ROLE is a ScriptRunner 'Project role(s) condition' in its exact form: roleIds[], roles[{id,name}] (name is null when Jira has no such role any more) and inverted (true: the condition allows users who are NOT members of the roles). OTHER is every other condition, including a group or project role condition in any other form (extra or missing arguments, negated): only its type and className/cannedScript, never its arguments. The keys that do not apply to a kind are null. Reading works without ScriptRunner. Returns the same revision as get_workflow: pass it as expectedRevision of configure_workflow. Use it right before configure_workflow to find the actionId and what the transition already requires; a transition can also be restricted by a permission condition or a validator, which this tool does not change.",
+    "annotations": {
+      "title": "Чтение условий переходов рабочего процесса",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "workflow": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Exact workflow name, from get_project_workflows."
+        },
+        "version": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "DRAFT"
+          ],
+          "description": "ACTIVE or DRAFT. Required."
+        }
+      },
+      "required": [
+        "workflow",
+        "version"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

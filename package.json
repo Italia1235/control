@@ -1,0 +1,18 @@
+{
+  "name": "control-evals",
+  "private": true,
+  "description": "Model-behavior evals for the Control Jira plugin; the plugin itself is built with Maven.",
+  "scripts": {
+    "test:offline": "node --test evals/offline",
+    "test:live-helpers": "node --test evals/live",
+    "eval:offline": "node evals/offline/run.mjs",
+    "eval:offline-paid": "node evals/offline/run-paid.mjs",
+    "eval:live": "node evals/live/run.mjs"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0"
+  }
+}

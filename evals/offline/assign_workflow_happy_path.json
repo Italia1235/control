@@ -1,0 +1,120 @@
+{
+  "scenario": "assign_workflow_happy_path",
+  "initialUserMessage": "Назначь workflow 'ITX: Делать – Готово' всему проекту ITX",
+  "planId": "eval-plan-assign-workflow-001",
+  "getProjectWorkflows": {
+    "project": { "key": "ITX", "name": "ITX" },
+    "scheme": {
+      "id": 10100,
+      "name": "ITX Workflow Scheme",
+      "isDefault": false,
+      "hasDraft": false,
+      "otherProjects": 0,
+      "otherProjectNames": []
+    },
+    "defaultWorkflow": "jira",
+    "issueTypes": [
+      {
+        "issueType": { "id": "10001", "name": "Задача" },
+        "workflow": "jira",
+        "issues": 4,
+        "statuses": [
+          { "name": "Делать", "issues": 3 },
+          { "name": "Готово", "issues": 1 }
+        ]
+      },
+      {
+        "issueType": { "id": "10002", "name": "Ошибка" },
+        "workflow": "ITX: Делать – Готово",
+        "issues": 1,
+        "statuses": [{ "name": "Делать", "issues": 1 }]
+      },
+      {
+        "issueType": { "id": "10003", "name": "История" },
+        "workflow": "jira",
+        "issues": 0,
+        "statuses": []
+      }
+    ]
+  },
+  "preview": {
+    "dryRun": true,
+    "status": "WOULD_ASSIGN",
+    "project": { "key": "ITX", "name": "ITX" },
+    "workflow": "ITX: Делать – Готово",
+    "scheme": { "action": "UPDATE", "id": 10100, "name": "ITX Workflow Scheme" },
+    "issueTypes": [
+      {
+        "issueType": { "id": "10001", "name": "Задача" },
+        "from": "jira",
+        "to": "ITX: Делать – Готово",
+        "verdict": "MIGRATE",
+        "issues": 4,
+        "statuses": [
+          { "name": "Делать", "issues": 3, "inWorkflow": true },
+          { "name": "Готово", "issues": 1, "inWorkflow": true }
+        ]
+      },
+      {
+        "issueType": { "id": "10002", "name": "Ошибка" },
+        "from": "ITX: Делать – Готово",
+        "to": "ITX: Делать – Готово",
+        "verdict": "ALREADY",
+        "issues": 1,
+        "statuses": [{ "name": "Делать", "issues": 1, "inWorkflow": true }]
+      },
+      {
+        "issueType": { "id": "10003", "name": "История" },
+        "from": "jira",
+        "to": "ITX: Делать – Готово",
+        "verdict": "READY",
+        "issues": 0,
+        "statuses": []
+      }
+    ],
+    "message": "Предупреждение: колонки досок Jira Software не изменяются.",
+    "errorCode": null,
+    "suggestions": [],
+    "planId": "eval-plan-assign-workflow-001",
+    "expiresAt": 4102444800000
+  },
+  "apply": {
+    "dryRun": false,
+    "status": "ASSIGNED",
+    "project": { "key": "ITX", "name": "ITX" },
+    "workflow": "ITX: Делать – Готово",
+    "scheme": { "action": "UPDATE", "id": 10100, "name": "ITX Workflow Scheme" },
+    "issueTypes": [
+      {
+        "issueType": { "id": "10001", "name": "Задача" },
+        "from": "jira",
+        "to": "ITX: Делать – Готово",
+        "verdict": "MIGRATE",
+        "issues": 4,
+        "statuses": [
+          { "name": "Делать", "issues": 3, "inWorkflow": true },
+          { "name": "Готово", "issues": 1, "inWorkflow": true }
+        ]
+      },
+      {
+        "issueType": { "id": "10002", "name": "Ошибка" },
+        "from": "ITX: Делать – Готово",
+        "to": "ITX: Делать – Готово",
+        "verdict": "ALREADY",
+        "issues": 1,
+        "statuses": [{ "name": "Делать", "issues": 1, "inWorkflow": true }]
+      },
+      {
+        "issueType": { "id": "10003", "name": "История" },
+        "from": "jira",
+        "to": "ITX: Делать – Готово",
+        "verdict": "READY",
+        "issues": 0,
+        "statuses": []
+      }
+    ],
+    "message": null,
+    "errorCode": null,
+    "suggestions": []
+  }
+}

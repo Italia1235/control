@@ -1,0 +1,12 @@
+<html>
+<head>
+    <title>$titleHtml</title>
+    <meta name="decorator" content="atl.admin">
+    <meta name="admin.active.section" content="admin_plugins_menu/control-admin-section">
+    <meta name="admin.active.tab" content="control-applies-link">
+    $webResourceManager.requireResourcesForContext("control")
+</head>
+<body>
+<div id="control-applies" data-base-url="$baseUrlHtml" data-context-path="$contextPathHtml" data-i18n="$i18nHtml"></div>
+</body>
+</html>

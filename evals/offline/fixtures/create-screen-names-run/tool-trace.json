@@ -1,0 +1,267 @@
+[
+  {
+    "sequence": 1,
+    "tool": "create_screen",
+    "arguments": {
+      "dryRun": true,
+      "name": "LAB — Создание эксперимента 17",
+      "fields": [
+        {
+          "name": "Тема"
+        },
+        {
+          "name": "LAB — Код эксперимента 17"
+        },
+        {
+          "name": "Описание"
+        }
+      ]
+    },
+    "result": {
+      "dryRun": true,
+      "status": "FAILED",
+      "screenId": null,
+      "name": "LAB — Создание эксперимента 17",
+      "description": null,
+      "tab": "Field Tab",
+      "fields": [
+        {
+          "requestedName": "Тема",
+          "fieldId": null,
+          "name": "Тема",
+          "status": "FAILED",
+          "typeKey": null,
+          "contexts": [],
+          "errorCode": "MISSING_TYPE",
+          "message": "No orderable field is named 'Тема'. Localized labels are not translated. For an existing system field, use its Jira id (for example summary or description), not a new custom replacement. Only if a new custom field is intended: choose its type from list_custom_field_types and provide typeKey.",
+          "suggestions": []
+        },
+        {
+          "requestedName": "LAB — Код эксперимента 17",
+          "fieldId": "customfield_10100",
+          "name": "LAB — Код эксперимента 17",
+          "status": "EXISTING",
+          "typeKey": "com.atlassian.jira.plugin.system.customfieldtypes:textfield",
+          "contexts": [],
+          "errorCode": null,
+          "message": null,
+          "suggestions": []
+        },
+        {
+          "requestedName": "Описание",
+          "fieldId": null,
+          "name": "Описание",
+          "status": "FAILED",
+          "typeKey": null,
+          "contexts": [],
+          "errorCode": "MISSING_TYPE",
+          "message": "No orderable field is named 'Описание'. Localized labels are not translated. For an existing system field, use its Jira id (for example summary or description), not a new custom replacement. Only if a new custom field is intended: choose its type from list_custom_field_types and provide typeKey.",
+          "suggestions": []
+        }
+      ],
+      "errorCode": "FIELD_ERROR",
+      "message": "Resolve the field errors before creating the screen.",
+      "planId": null,
+      "expiresAt": null
+    },
+    "status": "FAILED",
+    "userTurn": 1,
+    "assistantTurn": 1
+  },
+  {
+    "sequence": 2,
+    "tool": "create_screen",
+    "arguments": {
+      "dryRun": true,
+      "name": "LAB — Создание эксперимента 17",
+      "fields": [
+        {
+          "name": "summary"
+        },
+        {
+          "name": "customfield_10100"
+        },
+        {
+          "name": "description"
+        }
+      ]
+    },
+    "result": {
+      "dryRun": true,
+      "status": "WOULD_CREATE",
+      "screenId": null,
+      "name": "LAB — Создание эксперимента 17",
+      "description": null,
+      "tab": "Field Tab",
+      "fields": [
+        {
+          "requestedName": "summary",
+          "fieldId": "summary",
+          "name": "Summary",
+          "status": "EXISTING",
+          "typeKey": null,
+          "contexts": [],
+          "errorCode": null,
+          "message": null,
+          "suggestions": []
+        },
+        {
+          "requestedName": "customfield_10100",
+          "fieldId": "customfield_10100",
+          "name": "LAB — Код эксперимента 17",
+          "status": "EXISTING",
+          "typeKey": "com.atlassian.jira.plugin.system.customfieldtypes:textfield",
+          "contexts": [],
+          "errorCode": null,
+          "message": null,
+          "suggestions": []
+        },
+        {
+          "requestedName": "description",
+          "fieldId": "description",
+          "name": "Description",
+          "status": "EXISTING",
+          "typeKey": null,
+          "contexts": [],
+          "errorCode": null,
+          "message": null,
+          "suggestions": []
+        }
+      ],
+      "errorCode": null,
+      "message": null,
+      "planId": "create-screen-names-plan",
+      "expiresAt": 4102444800000
+    },
+    "status": "WOULD_CREATE",
+    "userTurn": 1,
+    "assistantTurn": 1
+  },
+  {
+    "sequence": 3,
+    "tool": "create_change_session",
+    "arguments": {},
+    "result": {
+      "sessionId": "eval-session-001"
+    },
+    "status": null,
+    "userTurn": 2,
+    "assistantTurn": 2
+  },
+  {
+    "sequence": 4,
+    "tool": "begin_change_set",
+    "arguments": {
+      "sessionId": "eval-session-001"
+    },
+    "result": {
+      "changeSetId": "eval-change-set-001"
+    },
+    "status": null,
+    "userTurn": 2,
+    "assistantTurn": 2
+  },
+  {
+    "sequence": 5,
+    "tool": "start_operation",
+    "arguments": {
+      "toolName": "create_screen",
+      "arguments": {
+        "dryRun": false,
+        "planId": "create-screen-names-plan"
+      },
+      "sessionId": "eval-session-001",
+      "changeSetId": "eval-change-set-001"
+    },
+    "result": {
+      "operationId": "eval-operation-001",
+      "status": "QUEUED"
+    },
+    "status": "QUEUED",
+    "userTurn": 2,
+    "assistantTurn": 2
+  },
+  {
+    "sequence": 6,
+    "tool": "get_operation",
+    "arguments": {
+      "operationId": "eval-operation-001"
+    },
+    "result": {
+      "operationId": "eval-operation-001",
+      "sessionId": "eval-session-001",
+      "changeSetId": "eval-change-set-001",
+      "toolName": "create_screen",
+      "arguments": {
+        "dryRun": false,
+        "planId": "create-screen-names-plan"
+      },
+      "status": "COMPLETED",
+      "result": {
+        "dryRun": false,
+        "status": "CREATED",
+        "screenId": 10106,
+        "name": "LAB — Создание эксперимента 17",
+        "description": null,
+        "tab": "Field Tab",
+        "fields": [
+          {
+            "requestedName": "summary",
+            "fieldId": "summary",
+            "name": "Summary",
+            "status": "EXISTING",
+            "typeKey": null,
+            "contexts": [],
+            "errorCode": null,
+            "message": null,
+            "suggestions": []
+          },
+          {
+            "requestedName": "customfield_10100",
+            "fieldId": "customfield_10100",
+            "name": "LAB — Код эксперимента 17",
+            "status": "EXISTING",
+            "typeKey": "com.atlassian.jira.plugin.system.customfieldtypes:textfield",
+            "contexts": [],
+            "errorCode": null,
+            "message": null,
+            "suggestions": []
+          },
+          {
+            "requestedName": "description",
+            "fieldId": "description",
+            "name": "Description",
+            "status": "EXISTING",
+            "typeKey": null,
+            "contexts": [],
+            "errorCode": null,
+            "message": null,
+            "suggestions": []
+          }
+        ],
+        "errorCode": null,
+        "message": null,
+        "planId": null,
+        "expiresAt": null
+      }
+    },
+    "status": "COMPLETED",
+    "userTurn": 2,
+    "assistantTurn": 2
+  },
+  {
+    "sequence": 7,
+    "tool": "finish_change_set",
+    "arguments": {
+      "changeSetId": "eval-change-set-001"
+    },
+    "result": {
+      "sessionId": "eval-session-001",
+      "changeSetId": "eval-change-set-001",
+      "status": "FINISHED"
+    },
+    "status": "FINISHED",
+    "userTurn": 2,
+    "assistantTurn": 2
+  }
+]

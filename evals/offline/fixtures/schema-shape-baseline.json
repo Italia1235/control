@@ -1,0 +1,1321 @@
+{
+  "formatVersion": 1,
+  "catalogs": [
+    "common-tools.json",
+    "customfields-tools.json",
+    "issuetypes-tools.json",
+    "projects-tools.json",
+    "resolution-tools.json",
+    "rollback-tools.json",
+    "screens-tools.json",
+    "workflow-tools.json"
+  ],
+  "tools": [
+    {
+      "catalog": "common-tools.json",
+      "name": "list_projects",
+      "schemaPath": "$[0].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "common-tools.json",
+      "name": "list_issue_types",
+      "schemaPath": "$[1].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "update_field_contexts",
+      "schemaPath": "$[0].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.contexts.items",
+          "kind": "array-object-item",
+          "keywordPaths": [
+            "$.properties.contexts.items.anyOf",
+            "$.properties.contexts.items.anyOf[0].allOf[0].oneOf",
+            "$.properties.contexts.items.anyOf[0].allOf[1].oneOf",
+            "$.properties.contexts.items.anyOf[1].anyOf",
+            "$.properties.contexts.items.anyOf[1].not",
+            "$.properties.contexts.items.anyOf[1].not.anyOf"
+          ]
+        },
+        {
+          "path": "$.properties.contexts.items.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.contexts.items.properties.options.properties.add.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.contexts.items.properties.options.properties.disable.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.contexts.items.properties.options.properties.enable.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.contexts.items.properties.options.properties.order.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.contexts.items.properties.options.properties.order.items.properties.optionIds.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.contexts.items.properties.options.properties.rename.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.contexts.items.properties.projects.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "anyOf",
+          "path": "$.properties.contexts.items.anyOf",
+          "schemaPath": "$.properties.contexts.items",
+          "positionPath": "$.properties.contexts.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "oneOf",
+          "path": "$.properties.contexts.items.anyOf[0].allOf[0].oneOf",
+          "schemaPath": "$.properties.contexts.items.anyOf[0].allOf[0]",
+          "positionPath": "$.properties.contexts.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "oneOf",
+          "path": "$.properties.contexts.items.anyOf[0].allOf[1].oneOf",
+          "schemaPath": "$.properties.contexts.items.anyOf[0].allOf[1]",
+          "positionPath": "$.properties.contexts.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "anyOf",
+          "path": "$.properties.contexts.items.anyOf[1].anyOf",
+          "schemaPath": "$.properties.contexts.items.anyOf[1]",
+          "positionPath": "$.properties.contexts.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "not",
+          "path": "$.properties.contexts.items.anyOf[1].not",
+          "schemaPath": "$.properties.contexts.items.anyOf[1]",
+          "positionPath": "$.properties.contexts.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": []
+        },
+        {
+          "keyword": "anyOf",
+          "path": "$.properties.contexts.items.anyOf[1].not.anyOf",
+          "schemaPath": "$.properties.contexts.items.anyOf[1].not",
+          "positionPath": "$.properties.contexts.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [],
+          "branchCount": 4
+        }
+      ],
+      "transitionLikeArrays": [
+        {
+          "path": "$.properties.contexts",
+          "itemPath": "$.properties.contexts.items",
+          "keywordPaths": [
+            "$.properties.contexts.items.anyOf[0].allOf[0].oneOf",
+            "$.properties.contexts.items.anyOf[0].allOf[1].oneOf",
+            "$.properties.contexts.items.anyOf[1].not"
+          ]
+        }
+      ]
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "create_field_context",
+      "schemaPath": "$[1].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": [
+            "$.allOf[0].oneOf",
+            "$.allOf[1].oneOf"
+          ]
+        },
+        {
+          "path": "$.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.options.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.options.items.properties.children.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.projects.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "oneOf",
+          "path": "$.allOf[0].oneOf",
+          "schemaPath": "$.allOf[0]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "oneOf",
+          "path": "$.allOf[1].oneOf",
+          "schemaPath": "$.allOf[1]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [],
+          "branchCount": 2
+        }
+      ],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "get_field_contexts",
+      "schemaPath": "$[2].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "list_custom_field_types",
+      "schemaPath": "$[3].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "list_assets_schemas",
+      "schemaPath": "$[4].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "create_custom_fields",
+      "schemaPath": "$[5].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.contexts.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.contexts.items.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.contexts.items.properties.options.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.contexts.items.properties.options.items.properties.children.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.contexts.items.properties.projects.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.fileField.properties.allowedFileExtensions.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.grid.properties.columns.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.grid.properties.columns.items.properties.options.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.grid.properties.searchableColumns.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.options.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.options.items.properties.children.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "plan_field_screens",
+      "schemaPath": "$[6].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "add_field_to_screens",
+      "schemaPath": "$[7].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fieldIds.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.screens.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "set_field_required",
+      "schemaPath": "$[8].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.rows.items",
+          "kind": "array-object-item",
+          "keywordPaths": [
+            "$.properties.rows.items.oneOf",
+            "$.properties.rows.items.oneOf[0].not",
+            "$.properties.rows.items.oneOf[1].not"
+          ]
+        },
+        {
+          "path": "$.properties.rows.items.properties.fields.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.rows.items.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "oneOf",
+          "path": "$.properties.rows.items.oneOf",
+          "schemaPath": "$.properties.rows.items",
+          "positionPath": "$.properties.rows.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "not",
+          "path": "$.properties.rows.items.oneOf[0].not",
+          "schemaPath": "$.properties.rows.items.oneOf[0]",
+          "positionPath": "$.properties.rows.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [
+            "$.properties.rows.items.oneOf[0]"
+          ]
+        },
+        {
+          "keyword": "not",
+          "path": "$.properties.rows.items.oneOf[1].not",
+          "schemaPath": "$.properties.rows.items.oneOf[1]",
+          "positionPath": "$.properties.rows.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [
+            "$.properties.rows.items.oneOf[1]"
+          ]
+        }
+      ],
+      "transitionLikeArrays": [
+        {
+          "path": "$.properties.rows",
+          "itemPath": "$.properties.rows.items",
+          "keywordPaths": [
+            "$.properties.rows.items.oneOf",
+            "$.properties.rows.items.oneOf[0].not",
+            "$.properties.rows.items.oneOf[1].not"
+          ]
+        }
+      ]
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "clone_project_field_configurations",
+      "schemaPath": "$[9].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "get_field_configurations",
+      "schemaPath": "$[10].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": [
+            "$.oneOf",
+            "$.oneOf[0].not",
+            "$.oneOf[0].not.anyOf",
+            "$.oneOf[1].oneOf",
+            "$.oneOf[1].not",
+            "$.oneOf[1].not.anyOf",
+            "$.oneOf[1].oneOf[0].not",
+            "$.oneOf[1].oneOf[0].not.anyOf",
+            "$.oneOf[1].oneOf[1].not",
+            "$.oneOf[1].oneOf[1].not.anyOf"
+          ]
+        },
+        {
+          "path": "$.properties.fields.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "oneOf",
+          "path": "$.oneOf",
+          "schemaPath": "$",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "not",
+          "path": "$.oneOf[0].not",
+          "schemaPath": "$.oneOf[0]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[0]"
+          ]
+        },
+        {
+          "keyword": "anyOf",
+          "path": "$.oneOf[0].not.anyOf",
+          "schemaPath": "$.oneOf[0].not",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[0]"
+          ],
+          "branchCount": 7
+        },
+        {
+          "keyword": "oneOf",
+          "path": "$.oneOf[1].oneOf",
+          "schemaPath": "$.oneOf[1]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[1]"
+          ],
+          "branchCount": 2
+        },
+        {
+          "keyword": "not",
+          "path": "$.oneOf[1].not",
+          "schemaPath": "$.oneOf[1]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[1]"
+          ]
+        },
+        {
+          "keyword": "anyOf",
+          "path": "$.oneOf[1].not.anyOf",
+          "schemaPath": "$.oneOf[1].not",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[1]"
+          ],
+          "branchCount": 2
+        },
+        {
+          "keyword": "not",
+          "path": "$.oneOf[1].oneOf[0].not",
+          "schemaPath": "$.oneOf[1].oneOf[0]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[1]",
+            "$.oneOf[1].oneOf[0]"
+          ]
+        },
+        {
+          "keyword": "anyOf",
+          "path": "$.oneOf[1].oneOf[0].not.anyOf",
+          "schemaPath": "$.oneOf[1].oneOf[0].not",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[1]",
+            "$.oneOf[1].oneOf[0]"
+          ],
+          "branchCount": 3
+        },
+        {
+          "keyword": "not",
+          "path": "$.oneOf[1].oneOf[1].not",
+          "schemaPath": "$.oneOf[1].oneOf[1]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[1]",
+            "$.oneOf[1].oneOf[1]"
+          ]
+        },
+        {
+          "keyword": "anyOf",
+          "path": "$.oneOf[1].oneOf[1].not.anyOf",
+          "schemaPath": "$.oneOf[1].oneOf[1].not",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[1]",
+            "$.oneOf[1].oneOf[1]"
+          ],
+          "branchCount": 3
+        }
+      ],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "create_field_configuration",
+      "schemaPath": "$[11].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "create_field_configuration_scheme",
+      "schemaPath": "$[12].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.mappings.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "assign_field_configuration_scheme",
+      "schemaPath": "$[13].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "customfields-tools.json",
+      "name": "set_field_configuration_mappings",
+      "schemaPath": "$[14].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.mappings.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "issuetypes-tools.json",
+      "name": "set_project_issue_types",
+      "schemaPath": "$[0].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.mappings.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.mappings.items.properties.statusMappings.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.newIssueTypes.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "issuetypes-tools.json",
+      "name": "create_issue_types",
+      "schemaPath": "$[1].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.issueTypes.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "projects-tools.json",
+      "name": "list_project_leads",
+      "schemaPath": "$[0].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "projects-tools.json",
+      "name": "create_project",
+      "schemaPath": "$[1].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": [
+            "$.oneOf",
+            "$.oneOf[0].not",
+            "$.oneOf[0].not.anyOf"
+          ]
+        },
+        {
+          "path": "$.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.newIssueTypes.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "oneOf",
+          "path": "$.oneOf",
+          "schemaPath": "$",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "not",
+          "path": "$.oneOf[0].not",
+          "schemaPath": "$.oneOf[0]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[0]"
+          ]
+        },
+        {
+          "keyword": "anyOf",
+          "path": "$.oneOf[0].not.anyOf",
+          "schemaPath": "$.oneOf[0].not",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[0]"
+          ],
+          "branchCount": 8
+        }
+      ],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "resolution-tools.json",
+      "name": "get_resolutions",
+      "schemaPath": "$[0].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "resolution-tools.json",
+      "name": "create_resolution",
+      "schemaPath": "$[1].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "rollback-tools.json",
+      "name": "start_operation",
+      "schemaPath": "$[0].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "rollback-tools.json",
+      "name": "get_operation",
+      "schemaPath": "$[1].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "screens-tools.json",
+      "name": "get_screen_contents",
+      "schemaPath": "$[0].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "screens-tools.json",
+      "name": "remove_field_from_screens",
+      "schemaPath": "$[1].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fieldIds.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.screens.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "screens-tools.json",
+      "name": "edit_screen_layout",
+      "schemaPath": "$[2].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": [
+            "$.anyOf"
+          ]
+        },
+        {
+          "path": "$.properties.add.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.moves.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.remove.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "anyOf",
+          "path": "$.anyOf",
+          "schemaPath": "$",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [],
+          "branchCount": 3
+        }
+      ],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "screens-tools.json",
+      "name": "get_project_screens",
+      "schemaPath": "$[3].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "screens-tools.json",
+      "name": "clone_project_screens",
+      "schemaPath": "$[4].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "screens-tools.json",
+      "name": "set_project_operation_screens",
+      "schemaPath": "$[5].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.mappings.items",
+          "kind": "array-object-item",
+          "keywordPaths": [
+            "$.properties.mappings.items.oneOf"
+          ]
+        },
+        {
+          "path": "$.properties.mappings.items.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "oneOf",
+          "path": "$.properties.mappings.items.oneOf",
+          "schemaPath": "$.properties.mappings.items",
+          "positionPath": "$.properties.mappings.items",
+          "positionKind": "array-object-item",
+          "oneOfBranches": [],
+          "branchCount": 2
+        }
+      ],
+      "transitionLikeArrays": [
+        {
+          "path": "$.properties.mappings",
+          "itemPath": "$.properties.mappings.items",
+          "keywordPaths": [
+            "$.properties.mappings.items.oneOf"
+          ]
+        }
+      ]
+    },
+    {
+      "catalog": "screens-tools.json",
+      "name": "create_screen",
+      "schemaPath": "$[6].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.options.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.fields.items.properties.options.items.properties.children.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "list_statuses",
+      "schemaPath": "$[0].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "configure_workflow",
+      "schemaPath": "$[1].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.create.properties.statuses.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.create.properties.transitions.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.existing.properties.changes.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.newScreens.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.newScreens.items.properties.fieldIds.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.transitionRules.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.transitionRules.items.properties.addConditions.properties.rules.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.transitionRules.items.properties.addConditions.properties.rules.items.properties.parameters.properties.roles.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.transitionRules.items.properties.addValidators.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.transitionRules.items.properties.addValidators.items.properties.parameters.properties.fieldIds.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "copy_workflow",
+      "schemaPath": "$[2].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "get_project_workflows",
+      "schemaPath": "$[3].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "assign_workflow",
+      "schemaPath": "$[4].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": [
+            "$.oneOf",
+            "$.oneOf[0].not"
+          ]
+        },
+        {
+          "path": "$.properties.issueTypes.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        },
+        {
+          "path": "$.properties.statusMappings.items",
+          "kind": "array-object-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "oneOf",
+          "path": "$.oneOf",
+          "schemaPath": "$",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "not",
+          "path": "$.oneOf[0].not",
+          "schemaPath": "$.oneOf[0]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[0]"
+          ]
+        }
+      ],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "clone_project_workflows",
+      "schemaPath": "$[5].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": [
+            "$.oneOf",
+            "$.oneOf[1].not"
+          ]
+        },
+        {
+          "path": "$.properties.workflows.items",
+          "kind": "array-item",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [
+        {
+          "keyword": "oneOf",
+          "path": "$.oneOf",
+          "schemaPath": "$",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [],
+          "branchCount": 2
+        },
+        {
+          "keyword": "not",
+          "path": "$.oneOf[1].not",
+          "schemaPath": "$.oneOf[1]",
+          "positionPath": "$",
+          "positionKind": "root",
+          "oneOfBranches": [
+            "$.oneOf[1]"
+          ]
+        }
+      ],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "publish_workflow_draft",
+      "schemaPath": "$[6].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "get_workflow",
+      "schemaPath": "$[7].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "rename_workflow",
+      "schemaPath": "$[8].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "update_status",
+      "schemaPath": "$[9].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "get_workflow_validators",
+      "schemaPath": "$[10].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    },
+    {
+      "catalog": "workflow-tools.json",
+      "name": "get_workflow_conditions",
+      "schemaPath": "$[11].input_schema",
+      "positions": [
+        {
+          "path": "$",
+          "kind": "root",
+          "keywordPaths": []
+        }
+      ],
+      "findings": [],
+      "transitionLikeArrays": []
+    }
+  ]
+}

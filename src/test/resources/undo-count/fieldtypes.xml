@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fieldtypemodel>
+    <field-type-def type="numeric" sql-type="BIGINT" java-type="Long"/>
+    <field-type-def type="extremely-long" sql-type="LONGVARCHAR" java-type="String"/>
+</fieldtypemodel>

@@ -1,0 +1,473 @@
+[
+  {
+    "sequence": 1,
+    "tool": "list_projects",
+    "arguments": {
+      "query": "ALPHA"
+    },
+    "result": [
+      {
+        "key": "ALPHA",
+        "name": "Alpha"
+      }
+    ],
+    "status": null,
+    "userTurn": 1,
+    "assistantTurn": 1
+  },
+  {
+    "sequence": 2,
+    "tool": "list_issue_types",
+    "arguments": {
+      "query": "A"
+    },
+    "result": [
+      {
+        "id": "A",
+        "name": "A"
+      },
+      {
+        "id": "B",
+        "name": "B"
+      }
+    ],
+    "status": null,
+    "userTurn": 1,
+    "assistantTurn": 1
+  },
+  {
+    "sequence": 3,
+    "tool": "list_issue_types",
+    "arguments": {
+      "query": "B"
+    },
+    "result": [
+      {
+        "id": "A",
+        "name": "A"
+      },
+      {
+        "id": "B",
+        "name": "B"
+      }
+    ],
+    "status": null,
+    "userTurn": 1,
+    "assistantTurn": 1
+  },
+  {
+    "sequence": 4,
+    "tool": "set_project_issue_types",
+    "arguments": {
+      "dryRun": true,
+      "project": "ALPHA",
+      "issueTypes": [
+        "B"
+      ],
+      "mappings": [
+        {
+          "from": "A",
+          "to": "B"
+        }
+      ]
+    },
+    "result": {
+      "dryRun": true,
+      "status": "WOULD_CHANGE",
+      "project": {
+        "key": "ALPHA",
+        "name": "Alpha"
+      },
+      "scheme": {
+        "action": "CREATE",
+        "id": 1,
+        "name": "Default",
+        "isDefault": true,
+        "otherProjects": 1,
+        "otherProjectNames": [
+          "Other"
+        ]
+      },
+      "issueTypes": [
+        {
+          "id": "B",
+          "name": "B"
+        }
+      ],
+      "added": [
+        {
+          "id": "B",
+          "name": "B"
+        }
+      ],
+      "removed": [
+        {
+          "id": "A",
+          "name": "A"
+        }
+      ],
+      "mappings": [
+        {
+          "from": {
+            "id": "A",
+            "name": "A"
+          },
+          "to": {
+            "id": "B",
+            "name": "B"
+          },
+          "issues": 51,
+          "fromWorkflow": "Source",
+          "toWorkflow": "Target",
+          "statuses": []
+        }
+      ],
+      "message": "Convert A to B before creating the private scheme. Undo is not supported.",
+      "undoWarning": "This operation cannot be rolled back through Undo.",
+      "planId": "cf09-partial-plan",
+      "expiresAt": 4102444800000
+    },
+    "status": "WOULD_CHANGE",
+    "userTurn": 1,
+    "assistantTurn": 1
+  },
+  {
+    "sequence": 5,
+    "tool": "create_change_session",
+    "arguments": {},
+    "result": {
+      "sessionId": "eval-session-001"
+    },
+    "status": null,
+    "userTurn": 2,
+    "assistantTurn": 2
+  },
+  {
+    "sequence": 6,
+    "tool": "begin_change_set",
+    "arguments": {
+      "sessionId": "eval-session-001"
+    },
+    "result": {
+      "changeSetId": "eval-change-set-001"
+    },
+    "status": null,
+    "userTurn": 2,
+    "assistantTurn": 2
+  },
+  {
+    "sequence": 7,
+    "tool": "start_operation",
+    "arguments": {
+      "toolName": "set_project_issue_types",
+      "arguments": {
+        "dryRun": false,
+        "planId": "cf09-partial-plan"
+      },
+      "sessionId": "eval-session-001",
+      "changeSetId": "eval-change-set-001"
+    },
+    "result": {
+      "operationId": "eval-operation-001",
+      "status": "QUEUED"
+    },
+    "status": "QUEUED",
+    "userTurn": 2,
+    "assistantTurn": 2
+  },
+  {
+    "sequence": 8,
+    "tool": "get_operation",
+    "arguments": {
+      "operationId": "eval-operation-001"
+    },
+    "result": {
+      "operationId": "eval-operation-001",
+      "sessionId": "eval-session-001",
+      "changeSetId": "eval-change-set-001",
+      "toolName": "set_project_issue_types",
+      "arguments": {
+        "dryRun": false,
+        "planId": "cf09-partial-plan"
+      },
+      "status": "FAILED",
+      "result": null,
+      "execution": {
+        "outcome": "PARTIALLY_CHANGED",
+        "counts": {
+          "completed": 50,
+          "unknown": 1,
+          "notStarted": null
+        },
+        "selectionComplete": false,
+        "details": [
+          {
+            "unitIndex": 0,
+            "issueId": "1",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 1,
+            "issueId": "2",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 2,
+            "issueId": "3",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 3,
+            "issueId": "4",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 4,
+            "issueId": "5",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 5,
+            "issueId": "6",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 6,
+            "issueId": "7",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 7,
+            "issueId": "8",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 8,
+            "issueId": "9",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 9,
+            "issueId": "10",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 10,
+            "issueId": "11",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 11,
+            "issueId": "12",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 12,
+            "issueId": "13",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 13,
+            "issueId": "14",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 14,
+            "issueId": "15",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 15,
+            "issueId": "16",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 16,
+            "issueId": "17",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 17,
+            "issueId": "18",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 18,
+            "issueId": "19",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 19,
+            "issueId": "20",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 20,
+            "issueId": "21",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 21,
+            "issueId": "22",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 22,
+            "issueId": "23",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 23,
+            "issueId": "24",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 24,
+            "issueId": "25",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 25,
+            "issueId": "26",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 26,
+            "issueId": "27",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 27,
+            "issueId": "28",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 28,
+            "issueId": "29",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 29,
+            "issueId": "30",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 30,
+            "issueId": "31",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 31,
+            "issueId": "32",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 32,
+            "issueId": "33",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 33,
+            "issueId": "34",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 34,
+            "issueId": "35",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 35,
+            "issueId": "36",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 36,
+            "issueId": "37",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 37,
+            "issueId": "38",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 38,
+            "issueId": "39",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 39,
+            "issueId": "40",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 40,
+            "issueId": "41",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 41,
+            "issueId": "42",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 42,
+            "issueId": "43",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 43,
+            "issueId": "44",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 44,
+            "issueId": "45",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 45,
+            "issueId": "46",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 46,
+            "issueId": "47",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 47,
+            "issueId": "48",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 48,
+            "issueId": "49",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 49,
+            "issueId": "50",
+            "state": "COMPLETED"
+          },
+          {
+            "unitIndex": 50,
+            "issueId": "51",
+            "state": "UNKNOWN"
+          }
+        ],
+        "detailsTruncated": false,
+        "stoppedAt": {
+          "unitIndex": 50
+        },
+        "compensation": false,
+        "journalOperationId": "eval-operation-001"
+      },
+      "error": "Type update failed after workflow update."
+    },
+    "status": "FAILED",
+    "userTurn": 2,
+    "assistantTurn": 2
+  }
+]

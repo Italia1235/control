@@ -1,0 +1,52 @@
+[
+  {
+    "name": "list_projects",
+    "description": "Find Jira projects to name in a request (for example the projects a new field or a workflow scheme applies to). Give the user's words (a key, or part of a key or name) as query. Returns key and name for at most limit projects (default 20) out of total. To prevent large nested responses, issueTypes are included only when exactly one project matches; issueTypesIncluded says whether they are present and issueTypesTotal gives the count. If several projects match, narrow the query before inspecting issue types. One match: use its key. Several matches: show them to the user and ask which. No match: tell the user and ask; never invent a project key. Archived projects are not listed and cannot be used.",
+    "annotations": {
+      "title": "Поиск проектов Jira",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Substring of the project key or name, any case. Omit to list projects."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "How many projects to return. Default 20."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "list_issue_types",
+    "description": "Find Jira issue types by id or name to turn the user's words ('bugs and tasks') into exact names for a request. Give the user's words as query. Returns id, name, description and subtask=true for sub-task types, at most limit (default 20) out of total. If total is larger than the list, narrow the query; do not request the full catalog. Sub-task types may be named like any other type when the user names them.",
+    "annotations": {
+      "title": "Поиск типов задач Jira",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Substring of the issue type id or name, any case. Omit only for a short initial sample."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "How many issue types to return. Default 20."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+]

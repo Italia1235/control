@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entity-config>
+    <resource-loader name="undo-count-cp" class="org.ofbiz.core.config.ClasspathLoader"/>
+    <transaction-factory class="ru.rasulov.common.impl.undo.NativeEntityCountDatabaseTest$Connections"/>
+    <delegator name="undo-count" entity-model-reader="undo-count" entity-group-reader="undo-count">
+        <group-map group-name="undo-count" datasource-name="undo-count"/>
+    </delegator>
+    <entity-model-reader name="undo-count">
+        <resource loader="undo-count-cp" location="undo-count/entitymodel.xml"/>
+    </entity-model-reader>
+    <entity-group-reader name="undo-count" loader="undo-count-cp" location="undo-count/entitygroup.xml"/>
+    <field-type name="undo-count-hsql" loader="undo-count-cp" location="undo-count/fieldtypes.xml"/>
+    <datasource name="undo-count" helper-class="org.ofbiz.core.entity.GenericHelperDAO"
+                field-type-name="undo-count-hsql" schema-name="PUBLIC" check-on-start="false" add-missing-on-start="false"/>
+</entity-config>

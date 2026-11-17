@@ -1,0 +1,170 @@
+{
+  "scenario": "project_document_happy_path",
+  "kind": "project_document",
+  "ompModel": "openai-codex/gpt-6-luna",
+  "ompThinking": "high",
+  "limits": {
+    "scenarioTimeoutMs": 900000,
+    "requestTimeoutMs": 90000,
+    "turns": 20,
+    "assistantCalls": 50,
+    "syntheticUserCalls": 20,
+    "toolCalls": 53
+  },
+  "initialUserMessage": "Ниже согласованная спецификация изменения существующего Jira-проекта. Выполни её целиком, но ничего не меняй в других проектах. Не проси разбивать документ на отдельные команды.\n\n# Проект\nПроект: PAY — Payments Platform. Проект уже существует. Текущий набор типов задач сохраняем без изменений.\n\n# Workflow 1: PAY Delivery\nНазначить только типу «Задача». Начальный статус: Backlog. Статусы по порядку: Backlog (TO_DO), In Progress (IN_PROGRESS), Ready for QA (IN_PROGRESS), Done (DONE). Переходы: «Start» Backlog -> In Progress; «Send to QA» In Progress -> Ready for QA; «Return to work» Ready for QA -> In Progress; «Complete» Ready for QA -> Done; «Reopen» Done -> Backlog.\n\n# Workflow 2: PAY Incident\nНазначить только типу «Ошибка». Статусы по порядку: Open (TO_DO), Investigating (IN_PROGRESS), Waiting for partner (категорию в документе не указали), Resolved (DONE). Начальный статус в документе тоже не зафиксирован. Переходы: «Investigate» Open -> Investigating; «Wait for partner» Investigating -> Waiting for partner; «Resume» Waiting for partner -> Investigating; «Resolve» Investigating -> Resolved; «Reopen» Resolved -> Open.\n\n# Поля\n1. Severity — Select List (single choice), варианты P0, P1, P2, P3 в этом порядке. Контекст: только PAY, только «Ошибка». Поле должно быть обязательным, но в документе не зафиксировано, только для «Ошибка» или для всех типов проекта.\n2. Customer Segment — Select List (single choice). Контекст: только PAY, типы «Задача» и «Ошибка». Список вариантов в документ не попал. Поле необязательное.\n\nОба поля добавить на Create и Edit экраны соответствующих типов задач, на View не добавлять. Если схемы или экраны общие, сначала отделить конфигурацию PAY. Аналогично отделить конфигурацию полей до изменения обязательности. Существующие задачи, статусы и значения полей сохранить.",
+  "missingDecisions": [
+    "категория статуса Waiting for partner",
+    "начальный статус workflow PAY Incident",
+    "варианты поля Customer Segment",
+    "обязательность Severity только для Ошибка или для всех типов проекта",
+    "копировать ли все Screen Schemes и связанные Screens для PAY"
+  ],
+  "syntheticUserMode": "deterministic",
+  "syntheticUserReplies": {
+    "intake": "Для PAY Incident: «Waiting for partner» — IN_PROGRESS, начальный статус — Open. Для завершения обоих workflow используйте Resolution Fixed из каталога Jira; Reopen очищает Resolution. Severity обязательна только для типа «Ошибка». Варианты Customer Segment в порядке: Retail, SME, Enterprise. Существующие workflows не копировать: при назначении новых workflows дайте PAY отдельную workflow-схему, не затрагивая другие проекты. Для экранов копировать все Screen Schemes проекта PAY и все связанные Screens, включая View; новые поля добавлять только на Create и Edit.",
+    "confirm": "Да, применяй",
+    "continue": "Не описывай намерение. Выполни следующий доступный read или preview сейчас и затем покажи его результат."
+  },
+  "requiredReads": [
+    "list_projects",
+    "list_issue_types",
+    "list_statuses",
+    "list_custom_field_types",
+    "get_project_workflows",
+    "get_project_screens"
+  ],
+  "readResults": {
+    "get_resolutions": [{"result": [{"id": "1", "name": "Fixed", "description": "Fixed"}]}],
+    "list_projects": {
+      "total": 1,
+      "projects": [
+        {"key": "PAY", "name": "Payments Platform", "issueTypes": ["Задача", "Ошибка"]}
+      ]
+    },
+    "list_issue_types": {
+      "issueTypes": [
+        {"id": "10001", "name": "Задача", "subtask": false},
+        {"id": "10002", "name": "Ошибка", "subtask": false},
+        {"id": "10003", "name": "Подзадача", "subtask": true}
+      ]
+    },
+    "list_statuses": {
+      "statuses": [
+        {"id": "1", "name": "Open", "category": "TO_DO"},
+        {"id": "2", "name": "Backlog", "category": "TO_DO"},
+        {"id": "3", "name": "In Progress", "category": "IN_PROGRESS"},
+        {"id": "4", "name": "Done", "category": "DONE"},
+        {"id": "5", "name": "Resolved", "category": "DONE"}
+      ]
+    },
+    "list_custom_field_types": {
+      "types": [
+        {"typeKey": "select", "name": "Select List (single choice)", "supportsOptions": true, "searchers": ["multiselectsearcher"]},
+        {"typeKey": "textfield", "name": "Text Field (single line)", "supportsOptions": false, "searchers": ["textsearcher"]}
+      ]
+    },
+    "get_project_workflows": {
+      "project": {"key": "PAY", "name": "Payments Platform"},
+      "scheme": {"id": 10000, "name": "Default Workflow Scheme", "isDefault": true, "hasDraft": false, "otherProjects": 12},
+      "defaultWorkflow": "jira",
+      "issueTypes": [
+        {"issueType": {"id": "10001", "name": "Задача"}, "workflow": "jira", "issues": 18, "statuses": [{"name": "Backlog", "issues": 8}, {"name": "In Progress", "issues": 6}, {"name": "Done", "issues": 4}]},
+        {"issueType": {"id": "10002", "name": "Ошибка"}, "workflow": "jira", "issues": 7, "statuses": [{"name": "Open", "issues": 5}, {"name": "Resolved", "issues": 2}]}
+      ]
+    },
+    "get_project_screens": {
+      "project": {"key": "PAY", "name": "Payments Platform"},
+      "issueTypeScreenScheme": {"id": 1, "name": "Default Issue Type Screen Scheme", "otherProjectsTotal": 12},
+      "issueTypes": [
+        {"issueType": {"id": "10001", "name": "Задача"}, "screenScheme": {"id": 1, "name": "Delivery Screen Scheme", "otherProjectsTotal": 4}, "operations": [{"operation": "CREATE", "screen": {"id": 1, "name": "Delivery Edit Screen", "otherProjectsTotal": 4}}, {"operation": "EDIT", "screen": {"id": 1, "name": "Delivery Edit Screen", "otherProjectsTotal": 4}}, {"operation": "VIEW", "screen": {"id": 3, "name": "Delivery View Screen", "otherProjectsTotal": 4}}]},
+        {"issueType": {"id": "10002", "name": "Ошибка"}, "screenScheme": {"id": 2, "name": "Incident Screen Scheme", "otherProjectsTotal": 3}, "operations": [{"operation": "CREATE", "screen": {"id": 2, "name": "Incident Edit Screen", "otherProjectsTotal": 3}}, {"operation": "EDIT", "screen": {"id": 2, "name": "Incident Edit Screen", "otherProjectsTotal": 3}}, {"operation": "VIEW", "screen": {"id": 4, "name": "Incident View Screen", "otherProjectsTotal": 3}}]}
+      ]
+    },
+    "plan_field_screens": [
+      {"match": {"fieldId": "customfield_12000"}, "result": {"field": {"id": "customfield_12000", "name": "Severity"}, "screens": [{"screenId": 21002, "name": "PAY Bug Create/Edit", "operations": ["CREATE", "EDIT"], "otherProjectsTotal": 0, "recommendation": "RECOMMENDED"}]}},
+      {"match": {"fieldId": "customfield_12001"}, "result": {"field": {"id": "customfield_12001", "name": "Customer Segment"}, "screens": [{"screenId": 21001, "name": "PAY Task Create/Edit", "operations": ["CREATE", "EDIT"], "otherProjectsTotal": 0, "recommendation": "RECOMMENDED"}, {"screenId": 21002, "name": "PAY Bug Create/Edit", "operations": ["CREATE", "EDIT"], "otherProjectsTotal": 0, "recommendation": "RECOMMENDED"}]}}
+    ]
+  },
+  "operations": [
+    {
+      "id": "create-delivery-workflow",
+      "tool": "configure_workflow",
+      "match": {"name": "PAY Delivery", "initialStatus": "Backlog"},
+      "preview": {"dryRun": true, "status": "WOULD_CREATE", "name": "PAY Delivery", "statuses": ["Backlog", "In Progress", "Ready for QA", "Done"], "transitions": 5, "planId": "plan-wf-delivery"},
+      "apply": {"dryRun": false, "status": "CREATED", "name": "PAY Delivery"}
+    },
+    {
+      "id": "create-incident-workflow",
+      "tool": "configure_workflow",
+      "match": {"name": "PAY Incident", "initialStatus": "Open"},
+      "preview": {"dryRun": true, "status": "WOULD_CREATE", "name": "PAY Incident", "statuses": ["Open", "Investigating", "Waiting for partner", "Resolved"], "transitions": 5, "planId": "plan-wf-incident"},
+      "apply": {"dryRun": false, "status": "CREATED", "name": "PAY Incident"}
+    },
+    {
+      "id": "assign-delivery-workflow",
+      "tool": "assign_workflow",
+      "requiresApplied": ["create-delivery-workflow"],
+      "match": {"project": "PAY", "workflow": "PAY Delivery", "issueTypes": ["Задача"], "newScheme": true},
+      "preview": {"dryRun": true, "status": "WOULD_ASSIGN", "project": {"key": "PAY"}, "workflow": "PAY Delivery", "scheme": {"action": "CREATE", "otherProjectsAffected": 0}, "issueTypes": [{"name": "Задача", "action": "MIGRATE", "issues": 18}], "planId": "plan-assign-delivery"},
+      "apply": {"dryRun": false, "status": "ASSIGNED", "project": {"key": "PAY"}, "workflow": "PAY Delivery"}
+    },
+    {
+      "id": "assign-incident-workflow",
+      "tool": "assign_workflow",
+      "requiresApplied": ["create-incident-workflow", "assign-delivery-workflow"],
+      "match": {"project": "PAY", "workflow": "PAY Incident", "issueTypes": ["Ошибка"]},
+      "preview": {"dryRun": true, "status": "WOULD_ASSIGN", "project": {"key": "PAY"}, "workflow": "PAY Incident", "scheme": {"action": "UPDATE", "otherProjectsAffected": 0}, "issueTypes": [{"name": "Ошибка", "action": "MIGRATE", "issues": 7}], "planId": "plan-assign-incident"},
+      "apply": {"dryRun": false, "status": "ASSIGNED", "project": {"key": "PAY"}, "workflow": "PAY Incident"}
+    },
+    {
+      "id": "clone-screens",
+      "tool": "clone_project_screens",
+      "match": {"project": "PAY", "copyScreens": true},
+      "matchAny": [{"scope": "ALL"}, {"scope": "SELECTED", "issueTypes": ["Задача", "Ошибка"]}],
+      "preview": {"dryRun": true, "status": "WOULD_CLONE", "project": {"key": "PAY"}, "issueTypeScreenScheme": {"source": "Default Issue Type Screen Scheme", "copy": "PAY: Default Issue Type Screen Scheme"}, "screenSchemes": 2, "screens": 4, "otherProjectsAffected": 0, "planId": "plan-clone-screens"},
+      "apply": {"dryRun": false, "status": "CLONED", "project": {"key": "PAY"}, "createdScreenIds": [21001, 21002, 21003, 21004]}
+    },
+    {
+      "id": "clone-field-configurations",
+      "tool": "clone_project_field_configurations",
+      "match": {"project": "PAY"},
+      "preview": {"dryRun": true, "status": "WOULD_CLONE", "project": {"key": "PAY"}, "scheme": {"source": "Default Field Configuration Scheme", "copy": "PAY: Default Field Configuration Scheme", "otherProjectsTotal": 12}, "fieldConfigurations": [{"source": "Default Field Configuration", "copy": "PAY: Default Field Configuration", "otherProjectsTotal": 12}], "planId": "plan-clone-fields"},
+      "apply": {"dryRun": false, "status": "CLONED", "project": {"key": "PAY"}}
+    },
+    {
+      "id": "create-fields",
+      "tool": "create_custom_fields",
+      "match": {"fields": [{"name": "Severity", "typeKey": "select", "options": [{"value": "P0"}, {"value": "P1"}, {"value": "P2"}, {"value": "P3"}], "contexts": [{"projects": ["PAY"], "issueTypes": ["Ошибка"]}]}, {"name": "Customer Segment", "typeKey": "select", "options": [{"value": "Retail"}, {"value": "SME"}, {"value": "Enterprise"}], "contexts": [{"projects": ["PAY"], "issueTypes": ["Задача", "Ошибка"]}]}]},
+      "preview": {"dryRun": true, "status": "WOULD_CREATE", "fields": [{"name": "Severity", "type": "Select List (single choice)", "contexts": ["PAY / Ошибка"]}, {"name": "Customer Segment", "type": "Select List (single choice)", "contexts": ["PAY / Задача, Ошибка"]}], "planId": "plan-create-fields"},
+      "apply": {"dryRun": false, "status": "CREATED", "fields": [{"name": "Severity", "customFieldId": "customfield_12000"}, {"name": "Customer Segment", "customFieldId": "customfield_12001"}]}
+    },
+    {
+      "id": "add-severity-to-screen",
+      "tool": "add_field_to_screens",
+      "requiresApplied": ["clone-screens", "create-fields"],
+      "match": {"fieldIds": ["customfield_12000"], "screens": [{"screenId": 21002}]},
+      "preview": {"dryRun": true, "status": "WOULD_ADD", "fields": ["Severity"], "screens": [{"id": 21002, "name": "PAY Bug Create/Edit"}], "otherProjectsAffected": 0, "planId": "plan-add-severity"},
+      "apply": {"dryRun": false, "status": "CHANGED", "added": 1}
+    },
+    {
+      "id": "add-customer-segment-to-screens",
+      "tool": "add_field_to_screens",
+      "requiresApplied": ["clone-screens", "create-fields"],
+      "match": {"fieldIds": ["customfield_12001"], "screens": [{"screenId": 21001}, {"screenId": 21002}]},
+      "preview": {"dryRun": true, "status": "WOULD_ADD", "fields": ["Customer Segment"], "screens": [{"id": 21001, "name": "PAY Task Create/Edit"}, {"id": 21002, "name": "PAY Bug Create/Edit"}], "otherProjectsAffected": 0, "planId": "plan-add-customer-segment"},
+      "apply": {"dryRun": false, "status": "CHANGED", "added": 2}
+    },
+    {
+      "id": "require-severity",
+      "tool": "set_field_required",
+      "requiresApplied": ["clone-field-configurations", "create-fields"],
+      "match": {"project": "PAY"},
+      "matchAny": [
+        {"rows": [{"fields": ["Severity"], "required": true, "issueTypes": ["Ошибка"]}]},
+        {"rows": [{"fields": ["customfield_12000"], "required": true, "issueTypes": ["Ошибка"]}]}
+      ],
+      "preview": {"dryRun": true, "status": "WOULD_CHANGE_REQUIREMENTS", "project": {"key": "PAY"}, "fields": [{"id": "customfield_12000", "name": "Severity"}], "targets": [{"issueType": {"id": "10003", "name": "Ошибка"}, "fields": [{"id": "customfield_12000", "status": "WOULD_MAKE_REQUIRED"}]}], "planId": "plan-require-severity"},
+      "apply": {"dryRun": false, "status": "REQUIREMENTS_CHANGED", "project": {"key": "PAY"}, "fields": [{"id": "customfield_12000", "name": "Severity"}], "targets": [{"issueType": {"id": "10003", "name": "Ошибка"}, "fields": [{"id": "customfield_12000", "status": "MADE_REQUIRED"}]}]}
+    }
+  ]
+}

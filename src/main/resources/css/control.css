@@ -1,0 +1,87 @@
+/* Audit page, after docs/design/Audit.html. Everything is scoped to #control-applies. */
+#control-applies { display: flex; flex-direction: column; gap: 24px; max-width: 1320px; padding: 8px 0 48px; color: oklch(0.22 0.01 260); }
+#control-applies .ca-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; row-gap: 6px; }
+#control-applies .ca-title { grid-column: 1; margin: 0; font-size: 28px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em; }
+#control-applies .ca-summary { grid-column: 1; font-size: 14px; color: oklch(0.5 0.01 260); }
+#control-applies .ca-leader-slot { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+#control-applies .ca-leader { display: flex; align-items: center; gap: 14px; padding: 10px 18px 10px 12px; background: #fff; border: 1px solid oklch(0.92 0.005 260); border-radius: 12px; }
+#control-applies .ca-leader-face { position: relative; width: 36px; height: 36px; flex: none; }
+#control-applies .ca-leader-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px oklch(0.82 0.12 85); }
+#control-applies .ca-crown { position: absolute; top: -14px; left: 7px; filter: drop-shadow(0 1px 1px oklch(0.5 0.1 70 / 0.35)); }
+#control-applies .ca-leader-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#control-applies .ca-leader-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: oklch(0.55 0.1 75); }
+#control-applies .ca-leader-name { display: flex; align-items: baseline; gap: 8px; font-size: 15px; font-weight: 600; }
+#control-applies .ca-leader-count { font-size: 13px; font-weight: 400; color: oklch(0.5 0.01 260); }
+#control-applies .ca-card { background: #fff; border: 1px solid oklch(0.92 0.005 260); border-radius: 10px; }
+
+#control-applies .ca-filters { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding: 16px; margin: 0; }
+#control-applies .ca-field { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+#control-applies .ca-field-wide { flex: 1 1 220px; min-width: 180px; }
+#control-applies .ca-field-narrow { flex: 0 1 180px; min-width: 150px; }
+#control-applies .ca-field-date { flex: 0 1 160px; min-width: 140px; }
+#control-applies .ca-field-label { font-size: 12px; font-weight: 500; color: oklch(0.5 0.01 260); }
+#control-applies .ca-input { height: 36px; padding: 0 10px; border: 1px solid oklch(0.88 0.006 260); border-radius: 7px; background: #fff; font: inherit; font-size: 14px; color: inherit; box-sizing: border-box; width: 100%; }
+#control-applies .ca-buttons { display: flex; gap: 8px; }
+#control-applies .ca-button { height: 36px; border-radius: 7px; font: inherit; font-size: 14px; cursor: pointer; }
+#control-applies .ca-button-primary { padding: 0 18px; border: 0; background: oklch(0.24 0.01 260); color: #fff; font-weight: 500; }
+#control-applies .ca-button-primary:hover { background: oklch(0.34 0.01 260); }
+#control-applies .ca-button-secondary { padding: 0 14px; border: 1px solid oklch(0.88 0.006 260); background: #fff; color: inherit; }
+#control-applies .ca-button-secondary:hover { background: oklch(0.97 0.004 260); }
+#control-applies .ca-button-small { height: 24px; padding: 0 8px; border: 1px solid oklch(0.88 0.006 260); border-radius: 5px; background: #fff; font-size: 12px; color: oklch(0.4 0.01 260); }
+
+#control-applies .ca-status:empty { display: none; }
+#control-applies .ca-note { padding: 16px 20px; color: oklch(0.5 0.01 260); font-size: 14px; }
+#control-applies .ca-error { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-color: oklch(0.88 0.06 25); background: oklch(0.97 0.02 25); color: oklch(0.42 0.14 25); font-size: 14px; }
+
+#control-applies .ca-table-card { overflow-x: auto; }
+#control-applies .ca-table { min-width: 900px; }
+#control-applies .ca-grid { display: grid; grid-template-columns: 110px 120px minmax(0, 1.1fr) minmax(0, 2fr) 150px 36px; gap: 16px; padding: 14px 20px; }
+#control-applies .ca-head { padding: 12px 20px; border-bottom: 1px solid oklch(0.92 0.005 260); font-size: 12px; font-weight: 500; color: oklch(0.5 0.01 260); text-transform: uppercase; letter-spacing: 0.05em; }
+#control-applies .ca-day { padding: 10px 20px; background: oklch(0.98 0.003 260); border-bottom: 1px solid oklch(0.94 0.004 260); font-size: 12px; font-weight: 600; color: oklch(0.45 0.01 260); }
+#control-applies .ca-row { border-bottom: 1px solid oklch(0.94 0.004 260); background: #fff; }
+#control-applies .ca-row:last-child { border-bottom: 0; }
+#control-applies .ca-row.ca-open { background: oklch(0.985 0.003 260); }
+#control-applies .ca-row-main { align-items: center; cursor: pointer; font-size: 14px; }
+#control-applies .ca-row-main:hover { background: oklch(0.98 0.004 260); }
+#control-applies .ca-row-main:focus { outline: none; }
+#control-applies .ca-row-main:focus-visible { outline: 2px solid oklch(0.6 0.15 255); outline-offset: -2px; }
+#control-applies .ca-time, #control-applies .ca-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+#control-applies .ca-time { color: oklch(0.4 0.01 260); }
+#control-applies .ca-user { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#control-applies .ca-avatar { width: 24px; height: 24px; border-radius: 50%; background: oklch(0.93 0.01 260); display: grid; place-items: center; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; flex: 0 0 auto; }
+#control-applies .ca-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#control-applies .ca-action { font-weight: 500; }
+#control-applies .ca-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+#control-applies .ca-chip { display: inline-flex; gap: 5px; align-items: baseline; max-width: 100%; padding: 2px 8px; border-radius: 5px; background: oklch(0.965 0.004 260); font-size: 13px; line-height: 20px; box-sizing: border-box; }
+#control-applies .ca-chip-type, #control-applies .ca-muted { color: oklch(0.52 0.01 260); }
+#control-applies .ca-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#control-applies .ca-chip-more { background: #fff; border: 1px solid oklch(0.9 0.005 260); color: oklch(0.45 0.01 260); }
+#control-applies .ca-chevron { display: grid; place-items: center; color: oklch(0.55 0.01 260); font-size: 14px; transition: transform 0.15s; }
+#control-applies .ca-open .ca-chevron { transform: rotate(90deg); }
+
+#control-applies .ca-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+#control-applies .ca-badge-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+#control-applies .ca-tone-created { background: oklch(0.95 0.04 150); color: oklch(0.42 0.12 150); }
+#control-applies .ca-tone-created .ca-badge-dot { background: oklch(0.62 0.15 150); }
+#control-applies .ca-tone-changed { background: oklch(0.95 0.04 250); color: oklch(0.42 0.12 250); }
+#control-applies .ca-tone-changed .ca-badge-dot { background: oklch(0.62 0.15 250); }
+#control-applies .ca-tone-required { background: oklch(0.95 0.04 70); color: oklch(0.42 0.12 70); }
+#control-applies .ca-tone-required .ca-badge-dot { background: oklch(0.62 0.15 70); }
+#control-applies .ca-tone-cloned { background: oklch(0.95 0.04 300); color: oklch(0.42 0.12 300); }
+#control-applies .ca-tone-cloned .ca-badge-dot { background: oklch(0.62 0.15 300); }
+#control-applies .ca-tone-neutral { background: oklch(0.94 0.004 260); color: oklch(0.35 0.01 260); }
+#control-applies .ca-tone-neutral .ca-badge-dot { background: oklch(0.55 0.01 260); }
+#control-applies .ca-tone-warning { background: oklch(0.95 0.06 95); color: oklch(0.42 0.1 85); }
+#control-applies .ca-tone-warning .ca-badge-dot { background: oklch(0.7 0.15 85); }
+#control-applies .ca-tone-error { background: oklch(0.95 0.04 25); color: oklch(0.45 0.15 25); }
+#control-applies .ca-tone-error .ca-badge-dot { background: oklch(0.62 0.18 25); }
+
+#control-applies .ca-detail { padding: 4px 20px 20px 146px; }
+#control-applies .ca-detail-card { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 10px 16px; padding: 16px 20px; border: 1px solid oklch(0.92 0.005 260); border-radius: 8px; background: #fff; font-size: 14px; }
+#control-applies .ca-detail-label { color: oklch(0.5 0.01 260); }
+#control-applies .ca-detail-value { overflow-wrap: anywhere; }
+#control-applies .ca-detail-list { display: flex; flex-direction: column; gap: 4px; }
+#control-applies .ca-ref { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#control-applies a { color: oklch(0.5 0.15 255); text-decoration: none; }
+#control-applies a:hover { text-decoration: underline; }
+#control-applies .ca-footer:empty { display: none; }

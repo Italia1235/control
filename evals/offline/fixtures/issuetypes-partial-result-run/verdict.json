@@ -1,0 +1,220 @@
+{
+  "scenario": "issuetypes_partial_result",
+  "passed": false,
+  "checks": {
+    "observed_partial_receipt": true,
+    "read_before_preview": true,
+    "completed_separate": true,
+    "unknown_separate": true,
+    "not_started_unknown": true,
+    "outcome_named": true,
+    "manual_pair_check": true,
+    "read_only_reconciliation": false,
+    "next_write_requires_preview": true,
+    "no_false_completion": true,
+    "no_false_no_change": true,
+    "no_repeated_write": true
+  },
+  "failures": [
+    "read_only_reconciliation"
+  ],
+  "observations": {
+    "counts": {
+      "completed": 50,
+      "unknown": 1,
+      "notStarted": null
+    },
+    "writeAttempts": 1,
+    "tool_calls": 8,
+    "extra_write_calls": []
+  },
+  "diagnostics": {
+    "terminationReason": "grader-failed",
+    "durationMs": 42140,
+    "assistantCalls": 6,
+    "syntheticUserCalls": 0,
+    "judgeCalls": 0,
+    "toolCalls": 8,
+    "models": [
+      {
+        "selector": "openai-codex/gpt-6.1-sol",
+        "provider": "openai-codex",
+        "model": "gpt-6.1-sol"
+      }
+    ],
+    "requestEvents": [
+      {
+        "role": "assistant",
+        "request": 1,
+        "attempt": 1,
+        "elapsedMs": 7140,
+        "httpStatus": null,
+        "outcome": "ok",
+        "usage": {
+          "input": 20848,
+          "output": 131,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 20979,
+          "reasoningTokens": 50,
+          "cost": {
+            "input": 0.041696,
+            "output": 0.0013100000000000002,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.043005999999999996
+          },
+          "premiumRequests": 0
+        }
+      },
+      {
+        "role": "assistant",
+        "request": 2,
+        "attempt": 1,
+        "elapsedMs": 5001,
+        "httpStatus": null,
+        "outcome": "ok",
+        "usage": {
+          "input": 21048,
+          "output": 106,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 21154,
+          "reasoningTokens": 40,
+          "cost": {
+            "input": 0.042096,
+            "output": 0.0010600000000000002,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.043156
+          },
+          "premiumRequests": 0
+        }
+      },
+      {
+        "role": "assistant",
+        "request": 3,
+        "attempt": 1,
+        "elapsedMs": 8373,
+        "httpStatus": null,
+        "outcome": "ok",
+        "usage": {
+          "input": 21339,
+          "output": 308,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 21647,
+          "reasoningTokens": 70,
+          "cost": {
+            "input": 0.042678,
+            "output": 0.0030800000000000003,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.045758
+          },
+          "premiumRequests": 0
+        }
+      },
+      {
+        "role": "assistant",
+        "request": 4,
+        "attempt": 1,
+        "elapsedMs": 4896,
+        "httpStatus": null,
+        "outcome": "ok",
+        "usage": {
+          "input": 21620,
+          "output": 95,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 21715,
+          "reasoningTokens": 37,
+          "cost": {
+            "input": 0.04324,
+            "output": 0.0009500000000000001,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.04419
+          },
+          "premiumRequests": 0
+        }
+      },
+      {
+        "role": "assistant",
+        "request": 5,
+        "attempt": 1,
+        "elapsedMs": 5919,
+        "httpStatus": null,
+        "outcome": "ok",
+        "usage": {
+          "input": 21712,
+          "output": 68,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 21780,
+          "reasoningTokens": 27,
+          "cost": {
+            "input": 0.043424,
+            "output": 0.00068,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.044104
+          },
+          "premiumRequests": 0
+        }
+      },
+      {
+        "role": "assistant",
+        "request": 6,
+        "attempt": 1,
+        "elapsedMs": 10794,
+        "httpStatus": null,
+        "outcome": "ok",
+        "usage": {
+          "input": 22827,
+          "output": 416,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 23243,
+          "reasoningTokens": 133,
+          "cost": {
+            "input": 0.045654,
+            "output": 0.0041600000000000005,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.049814
+          },
+          "premiumRequests": 0
+        }
+      }
+    ],
+    "paidConfiguration": {
+      "provider": "omp",
+      "model": "openai-codex/gpt-6.1-sol",
+      "tokenLimitMode": "soft",
+      "maxTokensPerRun": 300000
+    },
+    "tokenBudget": {
+      "mode": "soft",
+      "limit": 300000,
+      "notice": "soft limit, возможен перерасход на один запрос плюс retries",
+      "observedTokens": 130518,
+      "totalTokens": 130518,
+      "usageComplete": true,
+      "enforcement": "usage",
+      "reached": false,
+      "maxAssistantCalls": 6,
+      "byRole": {
+        "assistant": {
+          "responses": 6,
+          "observedTokens": 130518,
+          "totalTokens": 130518,
+          "observedCachedTokens": 0,
+          "cachedTokens": 0,
+          "usageComplete": true,
+          "cacheComplete": true
+        }
+      }
+    }
+  }
+}

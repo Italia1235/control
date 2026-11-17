@@ -1,0 +1,27 @@
+[
+  {
+    "name": "get_resolutions",
+    "description": "Read the actual global Jira Resolution catalog: canonical IDs, names, and descriptions. Optional query matches an exact ID or case-insensitive exact name; omit it to list all values. Does not change anything. Unresolved means absence of Resolution, never a catalog value. Honor the user's explicit choice; otherwise independently select the best existing match using target status/process meaning and catalog names/descriptions when sufficiently clear. When an English value and a non-English (e.g. Russian) value mean the same, always select the English one, regardless of the conversation language or the language the user named it in; take the non-English value only if the user explicitly insists on that exact value or gives its ID. No separate permission to choose is needed. Several entries alone do not require a question: ask once for all materially ambiguous outcomes that context cannot resolve. Never choose by catalog order, hard-coded IDs, or DONE = Fixed. Show selected real IDs/names in the workflow preview for confirmation. A required SET ID does not mean the server forbids agent selection. If no suitable value exists, propose creation separately and obtain approval; never create automatically.",
+    "annotations": {"title": "Каталог результатов решения", "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false},
+    "input_schema": {
+      "type": "object",
+      "properties": {"query": {"type": "string", "description": "Optional exact Resolution ID or case-insensitive name."}},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "create_resolution",
+    "description": "Create ONE global Jira Resolution, administrator only. Call get_resolutions first and propose creation only if no existing value fits. Propose an English name unless the user dictated another exact name. Preview with dryRun=true, name and optional description. Show the warning that Resolution is global for ALL Jira, not just this workflow, and obtain confirmation before apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Identical case-insensitive name and description returns EXISTS; ambiguity or a different description is NAME_CONFLICT, with no overwrite. Unresolved / Нерешено cannot be created. Resolution and workflow creation are separate, not atomic: if the workflow is not created, explicitly report that the global Resolution remains. After creation build a fresh workflow preview using the returned real ID.",
+    "annotations": {"title": "Создание глобального результата решения", "readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false},
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {"type": "boolean", "enum": [true], "description": "Required: true previews; apply only through start_operation."},
+        "name": {"type": "string", "minLength": 1, "description": "Preview only: exact approved name for the new global Resolution."},
+        "description": {"type": "string", "description": "Preview only: optional description; omitted means empty."}
+      },
+      "required": ["dryRun", "name"],
+      "additionalProperties": false
+    }
+  }
+]

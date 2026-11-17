@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entitygroup>
+    <entity-group group="undo-count" entity="ChangeGroup"/>
+    <entity-group group="undo-count" entity="OSHistoryStep"/>
+    <entity-group group="undo-count" entity="CustomFieldValue"/>
+    <entity-group group="undo-count" entity="Label"/>
+    <entity-group group="undo-count" entity="SearchRequest"/>
+</entitygroup>

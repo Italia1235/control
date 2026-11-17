@@ -1,0 +1,47 @@
+<atlassian-plugin key="${atlassian.plugin.key}" name="${project.name}" plugins-version="2">
+    <plugin-info>
+        <description>${project.description}</description>
+        <version>${project.version}</version>
+        <vendor name="${project.organization.name}" url="${project.organization.url}" />
+        <param name="plugin-icon">images/pluginIcon.png</param>
+        <param name="plugin-logo">images/pluginLogo.png</param>
+    </plugin-info>
+
+    <!-- add our i18n resource -->
+    <resource type="i18n" name="i18n" location="control"/>
+    
+    <!-- add our web resources -->
+    <web-resource key="control-resources" name="control Web Resources">
+        <dependency>com.atlassian.auiplugin:ajs</dependency>
+
+        <resource type="download" name="control.css" location="/css/control.css"/>
+        <resource type="download" name="control.js" location="/js/control.js"/>
+        <resource type="download" name="images/" location="/images"/>
+
+        <context>control</context>
+    </web-resource>
+    <ao key="rollback-journal" name="Durable rollback journal" namespace="ru.rasulov.control.undo">
+        <entity>ru.rasulov.common.impl.undo.JournalSession</entity>
+        <entity>ru.rasulov.common.impl.undo.JournalChangeSet</entity>
+        <entity>ru.rasulov.common.impl.undo.JournalOperation</entity>
+        <entity>ru.rasulov.common.impl.undo.JournalStep</entity>
+        <entity>ru.rasulov.common.impl.undo.JournalProgress</entity>
+        <entity>ru.rasulov.common.impl.undo.JournalProgressBatch</entity>
+        <entity>ru.rasulov.common.impl.undo.JournalBudget</entity>
+        <entity>ru.rasulov.common.impl.applies.ApplyRecord</entity>
+    </ao>
+    <web-section key="control-admin-section" name="Control admin section" location="admin_plugins_menu" weight="500">
+        <label key="control.applies.section"/>
+    </web-section>
+    <web-item key="control-applies-item" name="Apply journal menu item" section="admin_plugins_menu/control-admin-section" weight="10">
+        <label key="control.applies.title"/>
+        <link linkId="control-applies-link">/plugins/servlet/control/applies</link>
+        <condition class="com.atlassian.jira.plugin.webfragment.conditions.UserIsAdminCondition"/>
+    </web-item>
+    <servlet key="control-applies-servlet" name="Apply journal page" class="ru.rasulov.common.web.AppliesAdminServlet">
+        <url-pattern>/control/applies</url-pattern>
+    </servlet>
+    <rest key="control-rest" path="control" version="1.0">
+        <description>Control REST API</description>
+    </rest>
+</atlassian-plugin>

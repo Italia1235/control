@@ -1,0 +1,396 @@
+{
+  "sourceRun": "evals/offline/runs/2026-10-17T05-09-19-082Z-customfields_lab_two_screens",
+  "productionRevision": "8572e1c",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Поле «LAB — Код эксперимента 17» (customfield_10100) уже создано для LAB / Task и необязательно. Подбери экраны, на которых его можно показать, и предложи добавление.",
+      "turn": 1
+    },
+    {
+      "role": "assistant",
+      "content": "Для поля «LAB — Код эксперимента 17» в контексте LAB / Task подходят оба экрана:\n\n| Экран | Где показывается | Результат предварительного просмотра |\n|---|---|---|\n| LAB Create | Создание задач | Будет добавлено на вкладку «Вкладка поля» |\n| LAB Edit/View | Редактирование и просмотр задач | Будет добавлено на вкладку «Вкладка поля» |\n\nОба экрана относятся только к проекту LAB; другие проекты не затрагиваются. Предварительный просмотр подтверждает добавление на оба экрана. Операцию нельзя отменить через Undo.\n\nДобавить поле на эти экраны?",
+      "turn": 1
+    },
+    {
+      "role": "user",
+      "content": "Да, применяй.",
+      "turn": 2
+    },
+    {
+      "role": "assistant",
+      "content": "Готово: поле «LAB — Код эксперимента 17» добавлено на экраны LAB Create (создание задач) и LAB Edit/View (редактирование и просмотр задач) для LAB / Task. Другие проекты не затронуты. Операцию нельзя отменить через Undo.\n\n[Showing lines 1-24 of 25. Use :25 to continue]",
+      "turn": 2
+    }
+  ],
+  "trace": [
+    {
+      "sequence": 1,
+      "tool": "plan_field_screens",
+      "arguments": {
+        "fieldId": "customfield_10100"
+      },
+      "result": {
+        "fieldId": "customfield_10100",
+        "fieldName": "LAB — Код эксперимента 17",
+        "contexts": [
+          {
+            "name": "LAB / Task",
+            "allProjects": false,
+            "projects": [
+              {
+                "id": 20000,
+                "key": "LAB",
+                "name": "LAB"
+              }
+            ],
+            "allIssueTypes": false,
+            "issueTypes": [
+              {
+                "id": "20001",
+                "name": "Task"
+              }
+            ]
+          }
+        ],
+        "screens": [
+          {
+            "screenId": 21001,
+            "name": "LAB Create",
+            "operations": [
+              "CREATE"
+            ],
+            "tabs": [
+              {
+                "id": 21011,
+                "name": "Вкладка поля"
+              }
+            ],
+            "alreadyHasField": false,
+            "defaultScreen": false,
+            "recommendation": "RECOMMENDED",
+            "projectsInContext": [
+              {
+                "id": 20000,
+                "key": "LAB",
+                "name": "LAB"
+              }
+            ],
+            "projectsInContextTotal": 1,
+            "projectsOutsideContext": [],
+            "projectsOutsideContextTotal": 0,
+            "issueTypes": [
+              {
+                "id": "20001",
+                "name": "Task"
+              }
+            ],
+            "reasons": []
+          },
+          {
+            "screenId": 21002,
+            "name": "LAB Edit/View",
+            "operations": [
+              "EDIT",
+              "VIEW"
+            ],
+            "tabs": [
+              {
+                "id": 21012,
+                "name": "Вкладка поля"
+              }
+            ],
+            "alreadyHasField": false,
+            "defaultScreen": false,
+            "recommendation": "RECOMMENDED",
+            "projectsInContext": [
+              {
+                "id": 20000,
+                "key": "LAB",
+                "name": "LAB"
+              }
+            ],
+            "projectsInContextTotal": 1,
+            "projectsOutsideContext": [],
+            "projectsOutsideContextTotal": 0,
+            "issueTypes": [
+              {
+                "id": "20001",
+                "name": "Task"
+              }
+            ],
+            "reasons": []
+          }
+        ],
+        "total": 2,
+        "truncated": false,
+        "summary": {
+          "recommended": 2,
+          "caution": 0,
+          "notRecommended": 0,
+          "alreadyPresent": 0
+        }
+      },
+      "status": null,
+      "userTurn": 1,
+      "assistantTurn": 1
+    },
+    {
+      "sequence": 2,
+      "tool": "add_field_to_screens",
+      "arguments": {
+        "fieldIds": [
+          "customfield_10100"
+        ],
+        "dryRun": true,
+        "screens": [
+          {
+            "screenId": 21001
+          },
+          {
+            "screenId": 21002
+          }
+        ]
+      },
+      "result": {
+        "dryRun": true,
+        "fields": [
+          {
+            "fieldId": "customfield_10100",
+            "name": "LAB — Код эксперимента 17",
+            "results": [
+              {
+                "screenId": 21001,
+                "name": "LAB Create",
+                "status": "WOULD_ADD",
+                "tab": "Вкладка поля",
+                "errorCode": null,
+                "message": null
+              },
+              {
+                "screenId": 21002,
+                "name": "LAB Edit/View",
+                "status": "WOULD_ADD",
+                "tab": "Вкладка поля",
+                "errorCode": null,
+                "message": null
+              }
+            ]
+          }
+        ],
+        "errorCode": null,
+        "message": null,
+        "undoWarning": "This operation cannot be rolled back through Undo.",
+        "planId": "lab-screens-plan",
+        "expiresAt": 4102444800000
+      },
+      "status": null,
+      "userTurn": 1,
+      "assistantTurn": 1
+    },
+    {
+      "sequence": 3,
+      "tool": "create_change_session",
+      "arguments": {},
+      "result": {
+        "sessionId": "eval-session-001"
+      },
+      "status": null,
+      "userTurn": 2,
+      "assistantTurn": 2
+    },
+    {
+      "sequence": 4,
+      "tool": "begin_change_set",
+      "arguments": {
+        "sessionId": "eval-session-001"
+      },
+      "result": {
+        "changeSetId": "eval-change-set-001"
+      },
+      "status": null,
+      "userTurn": 2,
+      "assistantTurn": 2
+    },
+    {
+      "sequence": 5,
+      "tool": "start_operation",
+      "arguments": {
+        "toolName": "add_field_to_screens",
+        "arguments": {
+          "dryRun": false,
+          "planId": "lab-screens-plan"
+        },
+        "sessionId": "eval-session-001",
+        "changeSetId": "eval-change-set-001"
+      },
+      "result": {
+        "operationId": "eval-operation-001",
+        "status": "QUEUED"
+      },
+      "status": "QUEUED",
+      "userTurn": 2,
+      "assistantTurn": 2
+    },
+    {
+      "sequence": 6,
+      "tool": "get_operation",
+      "arguments": {
+        "operationId": "eval-operation-001"
+      },
+      "result": {
+        "operationId": "eval-operation-001",
+        "sessionId": "eval-session-001",
+        "changeSetId": "eval-change-set-001",
+        "toolName": "add_field_to_screens",
+        "arguments": {
+          "dryRun": false,
+          "planId": "lab-screens-plan"
+        },
+        "status": "COMPLETED",
+        "result": {
+          "dryRun": false,
+          "fields": [
+            {
+              "fieldId": "customfield_10100",
+              "name": "LAB — Код эксперимента 17",
+              "results": [
+                {
+                  "screenId": 21001,
+                  "name": "LAB Create",
+                  "status": "ADDED",
+                  "tab": "Вкладка поля",
+                  "errorCode": null,
+                  "message": null
+                },
+                {
+                  "screenId": 21002,
+                  "name": "LAB Edit/View",
+                  "status": "ADDED",
+                  "tab": "Вкладка поля",
+                  "errorCode": null,
+                  "message": null
+                }
+              ]
+            }
+          ],
+          "errorCode": null,
+          "message": null,
+          "undoWarning": "This operation cannot be rolled back through Undo."
+        }
+      },
+      "status": "COMPLETED",
+      "userTurn": 2,
+      "assistantTurn": 2
+    },
+    {
+      "sequence": 7,
+      "tool": "finish_change_set",
+      "arguments": {
+        "changeSetId": "eval-change-set-001"
+      },
+      "result": {
+        "sessionId": "eval-session-001",
+        "changeSetId": "eval-change-set-001",
+        "status": "FINISHED"
+      },
+      "status": "FINISHED",
+      "userTurn": 2,
+      "assistantTurn": 2
+    }
+  ],
+  "modelMessages": [
+    {
+      "role": "user",
+      "content": "Поле «LAB — Код эксперимента 17» (customfield_10100) уже создано для LAB / Task и необязательно. Подбери экраны, на которых его можно показать, и предложи добавление."
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call_plan_field_screens_1",
+          "type": "function",
+          "function": {
+            "name": "plan_field_screens",
+            "arguments": "{\"fieldId\":\"customfield_10100\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_plan_field_screens_1",
+      "content": "{\"fieldId\":\"customfield_10100\",\"fieldName\":\"LAB — Код эксперимента 17\",\"contexts\":[{\"name\":\"LAB / Task\",\"allProjects\":false,\"projects\":[{\"id\":20000,\"key\":\"LAB\",\"name\":\"LAB\"}],\"allIssueTypes\":false,\"issueTypes\":[{\"id\":\"20001\",\"name\":\"Task\"}]}],\"screens\":[{\"screenId\":21001,\"name\":\"LAB Create\",\"operations\":[\"CREATE\"],\"tabs\":[{\"id\":21011,\"name\":\"Вкладка поля\"}],\"alreadyHasField\":false,\"defaultScreen\":false,\"recommendation\":\"RECOMMENDED\",\"projectsInContext\":[{\"id\":20000,\"key\":\"LAB\",\"name\":\"LAB\"}],\"projectsInContextTotal\":1,\"projectsOutsideContext\":[],\"projectsOutsideContextTotal\":0,\"issueTypes\":[{\"id\":\"20001\",\"name\":\"Task\"}],\"reasons\":[]},{\"screenId\":21002,\"name\":\"LAB Edit/View\",\"operations\":[\"EDIT\",\"VIEW\"],\"tabs\":[{\"id\":21012,\"name\":\"Вкладка поля\"}],\"alreadyHasField\":false,\"defaultScreen\":false,\"recommendation\":\"RECOMMENDED\",\"projectsInContext\":[{\"id\":20000,\"key\":\"LAB\",\"name\":\"LAB\"}],\"projectsInContextTotal\":1,\"projectsOutsideContext\":[],\"projectsOutsideContextTotal\":0,\"issueTypes\":[{\"id\":\"20001\",\"name\":\"Task\"}],\"reasons\":[]}],\"total\":2,\"truncated\":false,\"summary\":{\"recommended\":2,\"caution\":0,\"notRecommended\":0,\"alreadyPresent\":0}}"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call_add_field_to_screens_1",
+          "type": "function",
+          "function": {
+            "name": "add_field_to_screens",
+            "arguments": "{\"fieldIds\":[\"customfield_10100\"],\"dryRun\":true,\"screens\":[{\"screenId\":21001},{\"screenId\":21002}]}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_add_field_to_screens_1",
+      "content": "{\"dryRun\":true,\"fields\":[{\"fieldId\":\"customfield_10100\",\"name\":\"LAB — Код эксперимента 17\",\"results\":[{\"screenId\":21001,\"name\":\"LAB Create\",\"status\":\"WOULD_ADD\",\"tab\":\"Вкладка поля\",\"errorCode\":null,\"message\":null},{\"screenId\":21002,\"name\":\"LAB Edit/View\",\"status\":\"WOULD_ADD\",\"tab\":\"Вкладка поля\",\"errorCode\":null,\"message\":null}]}],\"errorCode\":null,\"message\":null,\"undoWarning\":\"This operation cannot be rolled back through Undo.\",\"planId\":\"lab-screens-plan\",\"expiresAt\":4102444800000}"
+    },
+    {
+      "role": "assistant",
+      "content": "Для поля «LAB — Код эксперимента 17» в контексте LAB / Task подходят оба экрана:\n\n| Экран | Где показывается | Результат предварительного просмотра |\n|---|---|---|\n| LAB Create | Создание задач | Будет добавлено на вкладку «Вкладка поля» |\n| LAB Edit/View | Редактирование и просмотр задач | Будет добавлено на вкладку «Вкладка поля» |\n\nОба экрана относятся только к проекту LAB; другие проекты не затрагиваются. Предварительный просмотр подтверждает добавление на оба экрана. Операцию нельзя отменить через Undo.\n\nДобавить поле на эти экраны?"
+    },
+    {
+      "role": "user",
+      "content": "Да, применяй."
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "apply_field_screens_1",
+          "type": "function",
+          "function": {
+            "name": "start_operation",
+            "arguments": "{\"toolName\":\"add_field_to_screens\",\"arguments\":{\"dryRun\":false,\"planId\":\"lab-screens-plan\"}}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "apply_field_screens_1",
+      "content": "{\"operationId\":\"eval-operation-001\",\"status\":\"QUEUED\"}"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "get_op_1",
+          "type": "function",
+          "function": {
+            "name": "get_operation",
+            "arguments": "{\"operationId\":\"eval-operation-001\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "get_op_1",
+      "content": "{\"operationId\":\"eval-operation-001\",\"sessionId\":\"eval-session-001\",\"changeSetId\":\"eval-change-set-001\",\"toolName\":\"add_field_to_screens\",\"arguments\":{\"dryRun\":false,\"planId\":\"lab-screens-plan\"},\"status\":\"COMPLETED\",\"result\":{\"dryRun\":false,\"fields\":[{\"fieldId\":\"customfield_10100\",\"name\":\"LAB — Код эксперимента 17\",\"results\":[{\"screenId\":21001,\"name\":\"LAB Create\",\"status\":\"ADDED\",\"tab\":\"Вкладка поля\",\"errorCode\":null,\"message\":null},{\"screenId\":21002,\"name\":\"LAB Edit/View\",\"status\":\"ADDED\",\"tab\":\"Вкладка поля\",\"errorCode\":null,\"message\":null}]}],\"errorCode\":null,\"message\":null,\"undoWarning\":\"This operation cannot be rolled back through Undo.\"}}"
+    },
+    {
+      "role": "assistant",
+      "content": "Готово: поле «LAB — Код эксперимента 17» добавлено на экраны LAB Create (создание задач) и LAB Edit/View (редактирование и просмотр задач) для LAB / Task. Другие проекты не затронуты. Операцию нельзя отменить через Undo.\n\n[Showing lines 1-24 of 25. Use :25 to continue]"
+    }
+  ]
+}

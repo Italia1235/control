@@ -1,0 +1,932 @@
+[
+  {
+    "name": "update_field_contexts",
+    "description": "Change the project and issue-type scope, the Assets object settings (assets.objectSchemaId, assets.filterScopeAql) and/or the OPTIONS (options: add, rename, disable, enable, order) of up to 10 existing contexts of ONE custom field. ALWAYS read get_field_contexts first and use its exact customfield_N and contextIds. Each context is projects × issue types, not independent project/type pairs. Every requested context supplies both complete axes: projects or allProjects=true, and issueTypes or allIssueTypes=true; a context may instead carry only assets (Assets object fields) and/or only options (neither axis) to change those and leave its scope untouched, and assets or options together with both axes change both in one plan, one planId, one consent. For Assets settings read the current contexts[].assets from get_field_contexts, ask the user which schema (list_assets_schemas) and AQL they want, and show assets before/after from the preview; there is no automatic undo, so restore the previous values with another confirmed update using the before values. Names, descriptions, config IDs, defaults and the options not named in options are preserved, and so are plugin settings except the Assets settings passed in assets; no contexts are created or deleted. OPTIONS of a select, radio buttons, checkboxes, multi-select or cascading select context: ALWAYS read them first with get_field_contexts (contextId + includeOptions=true) and use only the exact optionId values it returns, never guessed ones. options.add [{value, parentOptionId?}] creates ENABLED options at the end of their level (a child only under an existing top-level option of a cascading select); options.rename [{optionId, value}]; options.disable [optionId] and options.enable [optionId]; options.order [{parentOptionId?, optionIds}] lists ALL existing options of one level, disabled ones included, in the new order (new options follow them in add order). Options are never deleted: there is no delete, and you must not offer one. To take an option out of the choice, disable it (values already stored in issues are kept) and ask the user for exactly that; if they asked to delete, explain that and ask whether to disable instead. Disabling the default value is allowed and shown, the default itself is not changed. A cascading parent can be disabled only together with all its children; no child can be added or enabled under a disabled parent. Operations that change nothing are skipped and shown as no change; a request that changes nothing returns OPTIONS_NO_CHANGE and no planId. The preview shows, per context, the scope and one table of every option change (was → becomes, position, default mark, the number of issues that use each renamed or disabled option or unknown, and the consequences: renaming changes the display in all issues and can break text filters/JQL): present it as one table with one question and never show the planId. Writes run in the order add, rename, enable/disable, order; changing only options needs no reindex. A project can belong to only one project-scoped context of this field, and at most one global context is allowed. To make project B use the same options and default as project A, add B to A's context; B then uses that context's config instead of its current one. On PROJECT_IN_OTHER_CONTEXT, also change the owning context in the same call (the final set is validated together); if B is its only project, ask the user which projects it should keep, never choose them yourself. Locked fields and contexts with multiple distinct configs are refused. Plugin fields are allowed for scope; explain PLUGIN_SETTINGS_UNVERIFIED where the plugin has no safe reader; options of Assets and plugin fields are refused with OPTIONS_NOT_SUPPORTED. Narrowing scope does not delete issue values, but they may become invisible or unsearchable until scope is restored. A source Screen permits inspection, not changing contexts. Preview with dryRun=true, show before/after, unchanged contexts, combinations, warnings and all affected projects, then obtain a separate human yes. Wildcard deltas can carry exclusions; SYMBOLIC_COMBINATIONS is not a count of Jira projects or issues. UNCHANGED returns no planId. Apply exactly once through start_operation with toolName=update_field_contexts and arguments containing only dryRun=false and the returned planId. PREVIEW_STALE (also when someone changed the options after the preview) requires a new shown preview and confirmation. Changes are not automatically rolled back; PARTIAL reports actual remaining Jira state and stops without retry. Restore prior scope or options with another preview-confirmed update using before from the response. notificationDisplayed=false means the reindex notification was not delivered, not that scope was restored. A reindex notification is not a completed or started reindex; this tool launches no reindex.",
+    "annotations": {
+      "title": "Изменение области контекстов поля",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {"type": "boolean", "enum": [true], "description": "Required preview mode. Apply only through start_operation after human confirmation."},
+        "fieldId": {"type": "string", "pattern": "^customfield_[1-9][0-9]*$", "description": "Exact field id returned by get_field_contexts; names and bare numeric ids are not accepted."},
+        "contexts": {
+          "type": "array", "minItems": 1, "maxItems": 10,
+          "items": {
+            "type": "object",
+            "properties": {
+              "contextId": {"type": "integer", "minimum": 1},
+              "allProjects": {"type": "boolean", "enum": [true]},
+              "projects": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"type": "string", "minLength": 1}},
+              "allIssueTypes": {"type": "boolean", "enum": [true]},
+              "issueTypes": {"type": "array", "minItems": 1, "maxItems": 50, "items": {"type": "string", "minLength": 1}},
+              "assets": {
+                "type": "object",
+                "description": "Optional, Assets object fields only: new object schema and scope AQL of THIS existing context. Read the current values from get_field_contexts first. With assets alone (no axes) the scope is left untouched; with assets and both axes both change in one plan. The preview shows before and after; there is no automatic undo.",
+                "properties": {
+                  "objectSchemaId": {"type": "integer", "minimum": 1, "description": "Required. Existing object schema id from list_assets_schemas, chosen by the user."},
+                  "filterScopeAql": {"type": "string", "description": "Optional scope AQL, passed as the user wrote it; for a named object type objectType = \"Name\". Omit to clear the filter."}
+                },
+                "required": ["objectSchemaId"],
+                "additionalProperties": false
+              },
+              "options": {
+                "type": "object",
+                "description": "Optional, select / radio / checkboxes / multi-select / cascading select contexts only: changes of THIS existing context's options. Read the options first with get_field_contexts (contextId + includeOptions=true) and use only its optionId values. Alone (no axes) the scope is left untouched; with both axes both change in one plan. Options are never deleted: disable instead. Applied as add, rename, enable/disable, order.",
+                "minProperties": 1,
+                "properties": {
+                  "add": {"type": "array", "minItems": 1, "maxItems": 500, "description": "New enabled options. Without parentOptionId a top-level option placed after the existing ones of that level; with parentOptionId a child of that existing top-level option (cascading select only).",
+                    "items": {"type": "object", "properties": {"value": {"type": "string", "minLength": 1, "maxLength": 255, "description": "The option text; trimmed; unique among the options of its level (case-insensitive, disabled ones included)."}, "parentOptionId": {"type": "integer", "minimum": 1, "description": "optionId of an existing top-level option of this context."}}, "required": ["value"], "additionalProperties": false}},
+                  "rename": {"type": "array", "minItems": 1, "maxItems": 500, "description": "New text of existing options. It changes how the value is displayed in all issues and can break filters/JQL that match the old text.",
+                    "items": {"type": "object", "properties": {"optionId": {"type": "integer", "minimum": 1}, "value": {"type": "string", "minLength": 1, "maxLength": 255}}, "required": ["optionId", "value"], "additionalProperties": false}},
+                  "disable": {"type": "array", "minItems": 1, "maxItems": 500, "description": "optionIds to disable: they can no longer be chosen; values already stored in issues are kept. A cascading parent only together with all its children.", "items": {"type": "integer", "minimum": 1}},
+                  "enable": {"type": "array", "minItems": 1, "maxItems": 500, "description": "optionIds to enable again.", "items": {"type": "integer", "minimum": 1}},
+                  "order": {"type": "array", "minItems": 1, "maxItems": 101, "description": "The new order of existing options, one entry per level: without parentOptionId the top-level options, with it the children of that option. optionIds must list EVERY existing option of that level once, disabled ones included.",
+                    "items": {"type": "object", "properties": {"parentOptionId": {"type": "integer", "minimum": 1}, "optionIds": {"type": "array", "minItems": 1, "maxItems": 2000, "items": {"type": "integer", "minimum": 1}}}, "required": ["optionIds"], "additionalProperties": false}}
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": ["contextId"],
+            "anyOf": [
+              {"allOf": [
+                {"oneOf": [{"required": ["projects"]}, {"required": ["allProjects"]}]},
+                {"oneOf": [{"required": ["issueTypes"]}, {"required": ["allIssueTypes"]}]}
+              ]},
+              {"anyOf": [{"required": ["assets"]}, {"required": ["options"]}], "not": {"anyOf": [
+                {"required": ["projects"]}, {"required": ["allProjects"]},
+                {"required": ["issueTypes"]}, {"required": ["allIssueTypes"]}
+              ]}}
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["dryRun", "fieldId", "contexts"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "create_field_context",
+    "description": "Create ONE new context of an EXISTING custom field. Not update_field_contexts (changes existing contexts only), not create_custom_fields (existing fields return EXISTS unchanged). ALWAYS read get_field_contexts first and use its exact customfield_N as fieldId. Supply name, optional description, and BOTH complete axes: projects or allProjects=true, issueTypes or allIssueTypes=true; exactly one form per axis, never empty or implicit all. The final context set allows one project-scoped context per project, at most one global context and unique context names. Report the owning context/project on conflict; never widen, delete or otherwise bypass a conflicting context. IMPORTANT: Jira selects the scheme by project BEFORE issue type. A project context shadows global for the WHOLE project: its included types may switch config (effectiveChange.configSwitches, OVERRIDES_GLOBAL_CONTEXT), while types outside its scope lose global applicability (lostApplicability, GLOBAL_APPLICABILITY_REMOVED), with no global fallback. Existing stored issue values are not deleted, but applicability/visibility/search may change. A new global does not fill missing types of existing project contexts: keptByExistingContexts lists project-wide exclusions, newlyApplicableExact=false marks an upper bound, not an exact added set. Jira creates one new FieldConfig with its native initial config items. No existing options, defaults, user filters, version order or other settings are copied. Optional built-in settings exist; do not promise no settings. Supported built-ins: text, textarea, date picker, date time picker, number, URL, labels, user/multi user picker, group/multi group picker, project picker, version/multi version picker, and select-like select, radio buttons, multi select, checkboxes, cascading select. Select-like types REQUIRE options: the new context's own complete list in display order (children only for cascading select), created enabled in its new FieldConfig with no default value; ask the user for the values, never copy or invent them; settings.options.values shows them. Every other type refuses options. An Assets object field is supported only with assets (objectSchemaId from list_assets_schemas, optional filterScopeAql): they are validated before writing and stored on the new context only. Assets without assets, File, Grid, third-party and unknown types return UNSUPPORTED_FIELD_TYPE before writing, and assets for any other type is refused; locked fields are refused. Existing contexts, their options, screens, field configurations, workflows and issue values are not written. Preview with dryRun=true; show field/type, full new scope, options, unchangedContexts, effectiveChange, settings and EVERY warning, then obtain a separate human yes. Apply exactly once via start_operation with toolName=create_field_context and arguments containing only dryRun=false and planId. The plan is single-use, expires, and a changed field/context/settings gives PREVIEW_STALE without writing: preview and ask again. CREATED requires verified contextId/configIds, observed scope and exactly the approved options. PARTIAL retains a known contextId/report even if readback failed; actual=null means unverified scope, empty configIds may mean unknown configs; a PARTIAL select context may hold only some or differing options. A native exception can leave config data even without a visible context: never describe PARTIAL as nothing written. FAILED means failure before entering native write with readable unchanged state. Never retry writes automatically. Automatic undo is NOT supported, including for successful creation: journal steps/result are retained, but context and option deletion are excluded from rollback. Manual cleanup must check issue values, later settings and the effective global/project configuration; the native delete API is not proven safe. Jira only displays a reindex notification; reindex is not started.",
+    "annotations": {
+      "title": "Создание контекста существующего поля",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": { "type": "boolean", "enum": [true], "description": "Required preview mode. Apply only through start_operation after human confirmation." },
+        "fieldId": { "type": "string", "pattern": "^customfield_[1-9][0-9]*$", "description": "Exact field id returned by get_field_contexts; names and bare numeric ids are not accepted." },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Name of the new context; must differ from every existing context name of this field." },
+        "description": { "type": "string", "maxLength": 255, "description": "Optional description of the new context." },
+        "allProjects": { "type": "boolean", "enum": [true], "description": "Global context for all projects. Use instead of projects." },
+        "projects": { "type": "array", "minItems": 1, "maxItems": 100, "items": { "type": "string", "minLength": 1 }, "description": "Project keys or names. Use instead of allProjects." },
+        "allIssueTypes": { "type": "boolean", "enum": [true], "description": "All issue types. Use instead of issueTypes." },
+        "issueTypes": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "type": "string", "minLength": 1 }, "description": "Issue type ids or names. Use instead of allIssueTypes." },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "description": "Required for select-like fields only (select, radio buttons, multi select, checkboxes, cascading select); omit for every other type. The new context's own options in display order, at most 100 top-level and 500 in total. Values must be unique (case-insensitive). Ask the user for the values instead of inventing them; nothing is copied from existing contexts. 'children' only for cascading select (exactly two levels).",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": { "type": "string", "minLength": 1, "maxLength": 255, "description": "The text of the option as the user will see it." },
+              "children": {
+                "type": "array",
+                "maxItems": 100,
+                "description": "Cascading select only: second-level options of this option, at most 100.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": { "type": "string", "minLength": 1, "maxLength": 255, "description": "The text of the option as the user will see it." }
+                  },
+                  "required": ["value"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["value"],
+            "additionalProperties": false
+          }
+        },
+        "assets": {
+          "type": "object",
+          "description": "Optional; the only way to create a context of an Assets object field (com.riadalabs.jira.plugins.insight:rlabs-customfield-default-object), and refused for every other type. Stored on the new context only. Ask which object schema the user wants if not given; an object type the user names (for example 'object User') is the scope AQL objectType = \"User\". Show the schema and AQL in the preview.",
+          "properties": {
+            "objectSchemaId": { "type": "integer", "minimum": 1, "description": "Required. Existing object schema id from list_assets_schemas, chosen by the user." },
+            "filterScopeAql": { "type": "string", "description": "Optional scope AQL, passed as the user wrote it; for a named object type objectType = \"Name\". Omit when no filter is requested." }
+          },
+          "required": ["objectSchemaId"],
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        { "oneOf": [ { "required": ["projects"] }, { "required": ["allProjects"] } ] },
+        { "oneOf": [ { "required": ["issueTypes"] }, { "required": ["allIssueTypes"] } ] }
+      ],
+      "required": ["dryRun", "fieldId", "name"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_field_contexts",
+    "description": "Read-only. Read the actual Jira contexts of ONE existing custom field by exact name or id (customfield_N or N). Duplicate field names return AMBIGUOUS_FIELD with every typed candidate: ask the user to choose an id. When a project is already known from the task or get_workflow consumers, pass project (current key or exact name, case-insensitive; key wins). Returns ALL global contexts and ALL contexts containing that project, filtered on the complete Jira scope BEFORE the project display limit. Without project, reads all contexts as before. With project and contextId, both restrictions apply: an existing context of this field that does not match the project returns READ with contexts=[]; a contextId not belonging to this field is UNKNOWN_CONTEXT. No matching contexts also returns READ with contexts=[]. Unknown projects are UNKNOWN_PROJECT; blank, archived or ambiguous project names are VALIDATION_ERROR, never an unfiltered fallback. Context scope is the Cartesian product projects × issue types. All selected contexts retain their full issue-type/config mappings and real shared scope: project is a filter, not a private copy or a reduction of the context to one project. Global and project-scoped contexts are returned for scope inspection, not collapsed into a single effective Jira configuration. One response is sufficient to check the known project's membership and inspect the needed issue types across these contexts; do not read each returned context separately. Reuse that response: do not repeat an identical read unless state changed or identify the concrete missing data first. For a workflow affecting several projects, check every affected project, not just the first; there is no batch parameter. Returns real context/config IDs, locked/type classification, option counts, default presence and plugin-settings presence (UNKNOWN is not absence); for an Assets object field context with one config, assets holds the stored objectSchemaId and filterScopeAql (absent when not initialized or not readable). OPTIONS: pass contextId together with includeOptions=true to also get optionList for that one context: hasOptions (false means the field keeps no options) and items [{configId, id, value, parentId, disabled, default, position}], parents before their children, each level in its order (position is 0-based within the level; default is true for the default value). includeOptions without contextId is refused with VALIDATION_ERROR; project does not replace contextId. Without includeOptions, only existing option counts are read, not a detailed optionList. Read the options this way before any change of options with update_field_contexts and use only the optionId values it returns; never guess an optionId. Projects are capped at 50 per context with projectCount and projectsComplete=false; pass contextId only when the complete shared project list is actually needed, not to recheck membership already established by project. With contextId the complete project list is returned, also when project is supplied. Global scope is explicit, not an enumeration of Jira projects/types. A field on a source Screen is a reason to read contexts, not permission to change them. This tool changes nothing, does not copy plugin settings or reindex issues; narrowing a context in a separate operation would not delete issue values. A Jira reindex notification is not a completed reindex. Current configuration is not evidence of history: never claim that a field has no stored values or was never used without a tool result showing it.",
+    "annotations": {
+      "title": "Чтение контекстов пользовательского поля",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "field": { "type": "string", "minLength": 1, "description": "Exact custom field name or id: customfield_N or N." },
+        "project": { "type": "string", "minLength": 1, "description": "Optional current project key or exact name, case-insensitive; key wins. Selects global contexts and contexts containing this project using the complete scope before display truncation; does not narrow their real shared scope. Combine with contextId to apply both restrictions." },
+        "contextId": { "type": "integer", "minimum": 1, "description": "Optional contextId returned for this field; returns that context with its complete project list. With project, a context of this field that does not apply returns READ with contexts=[]; a foreign contextId remains UNKNOWN_CONTEXT." },
+        "includeOptions": { "type": "boolean", "description": "Optional. true also returns optionList (every option with id, value, parentId, disabled, default, position) of the context. Requires contextId: without it the call is refused with VALIDATION_ERROR (the schema keeps contextId optional)." }
+      },
+      "required": ["field"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "list_custom_field_types",
+    "description": "List custom field types installed in Jira with their compatible searchers. Call this once per conversation before the first create_custom_fields and reuse the result, to find a valid typeKey and to check whether the type supports options (supportsOptions=true: select, multiselect, radio buttons, checkboxes, cascading select). Match the user's wording to the type name/description, not to the key: e.g. 'Number Field' has the key 'float', 'Labels' has the key 'labels'.",
+    "annotations": {
+      "title": "Чтение типов пользовательских полей",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "list_assets_schemas",
+    "description": "Read-only. List the object schemas available in the installed Assets plugin. Use the returned schema id for assets.objectSchemaId of create_custom_fields, create_field_context or update_field_contexts; show the schemas and ask the user which to use rather than guessing. Assets is an optional plugin and may be unavailable.",
+    "annotations": {
+      "title": "Чтение схем объектов Assets",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "create_custom_fields",
+    "description": "Create Jira custom fields in the contexts (projects and issue types) the user named. Idempotent: a field with the same name and type is returned as EXISTS and not recreated; an existing field is never changed, so its options, contexts, searcher, description and plugin settings (Assets, File Field, Grid) stay as they were. An EXISTS result shows the contexts the field really has; if it has a message, the message lists the parts of your request that were ignored: tell the user. EXISTING FIELDS. An EXISTS preview is not a question for the user: if its contexts do not cover the scope the user named, that scope is a new context of the existing field. Read get_field_contexts and preview create_field_context for it, preview create_custom_fields again WITHOUT the EXISTS fields, and show both in one table with one question. Never keep an EXISTS field in a create_custom_fields plan you apply together with create_field_context for that field: the plan includes the field's contexts and becomes PREVIEW_STALE once the context is added. A WOULD_CREATE or CREATED result may also carry a message: it is a warning for the user (for example a select without options); read it, tell the user, and on a preview ask before creating. Use dryRun=true to validate and preview without changes, show the preview to the user, and keep its planId. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Each field has its own result; on FAILED, fix the field using errorCode, message and suggestions. CONTEXT IS REQUIRED. Ask for missing projects/issue types; never choose scope. Set allProjects/allIssueTypes=true only for an explicitly global/all request. Resolve project keys with list_projects and type names with list_issue_types; ask on ambiguity. Show named contexts in preview for confirmation. ONE CONTEXT OR SEVERAL. If the user lists projects and issue types together, that is ONE context. Use several contexts only when the user says they must be separate ('each project has its own context', 'in A these values, in B those'); then one context per group, and contexts must not overlap. If unsure, ask. ASSETS OBJECT FIELDS. Optional field-level assets configures only the Assets object type (com.riadalabs.jira.plugins.insight:rlabs-customfield-default-object). Call list_assets_schemas for existing schema ids and ask the user which schema to use if not given; never invent it. An object type the user names for the field ('object User') is the scope, not a question: set filterScopeAql to objectType = \"User\" with the type name in double quotes exactly as written, without asking, and show that AQL in the preview. Ask the user to write AQL only when they describe a filter that one object type cannot express; never invent conditions. No object type and no filter means no filterScopeAql. When assets is supplied, objectSchemaId is required and filterScopeAql is optional. The same settings apply to every newly created context. For an existing field, requested Assets settings are ignored and its settings remain unchanged. Assets object fields do not accept Jira options, either at field level or in contexts. Assets is an optional runtime plugin. APWIDE FILE FIELD. Optional field-level fileField configures only com.apwide.document.file-field:apwide-doc-field: allowed extensions, maximum number of files, maximum file size in MB, read-only and auto-clean. Omit it when the user named no limits; the plugin defaults then apply. TABLE GRID. Optional field-level grid configures only a Table Grid Next Generation field (tge.cloud:idalko-table-grid-custom-field-key): the columns of the table in display order, each with id, title, type, and for list/multiselectlist its option values. Ask the user for columns, their types and list values if not given; never invent them. Without grid the plugin puts its default columns (Order, Summary, Assignee, Status) only into the first context. Show every column in the preview. Formula, attachment, data-source-driven lists, grid behaviors and default rows are not supported by this tool: say so and offer the plugin's own configuration page. Both apps are optional runtime plugins; their settings apply to every newly created context, and for an existing field they are ignored and reported. OPTIONS. For types with supportsOptions=true (select, multiselect, cascadingselect, ...): if the user asked for such a field but gave no option values, do NOT create it. Ask the user whether they really want the field without options, or which values to add. Options can only be given when the field is created; this tool cannot add them later, so an empty select must be filled by hand in Jira. Create it without options only after the user explicitly confirms. The tool also warns about it in the result message. 'options' of the field apply to every context; give 'options' inside a context only when its values differ. Labels ('labels') take no options: users type labels freely. NEXT STEP: SCREENS. A created field is on no screen, so the user cannot see it yet. After a successful create (or EXISTS), check the actual contexts first. If any context has allProjects=true, do NOT call plan_field_screens or read screens unless the user requested screen placement for a named project, a screenId or explicitly all screens; a general request such as 'add it to screens' without any of these still gets the ONE question below. In the creation report, say the new field is not visible yet and ask ONE question: which project and issue type (or screenId) should show it, or nowhere for now? For a named project/issue type or screenId, follow the project-scoped path below: read only get_project_screens for that project, then get_screen_contents for the selected screens before preview. If the user explicitly requests all screens for a global field, call plan_field_screens once without cursor, report the screen and project impact from total/summary and returned sharing metadata, and ask for confirmation of that scope BEFORE reading more pages or obtaining previews. Otherwise, for contexts with listed projects, if the user named no screen and no project/issue type, call plan_field_screens separately for every customFieldId, even for identical contexts. If the user named the project and issue type (or screenId) and this conversation already has the actual get_project_screens result of that project and get_screen_contents of that screenId, do NOT call plan_field_screens: use edit_screen_layout dryRun for one screen, add_field_to_screens for several; take impact on other projects from otherProjects and SHARED_SCREEN; propose no screen outside the named project. Select only seen screens, group fields only when their selected screenId sets are identical, and obtain add_field_to_screens dryRun=true previews before asking for agreement. Show the proposed screens, impacts and successful previews in one message with one confirmation question. If the user also asked to make the created fields required, obtain the set_field_required dryRun preview now and show it in that same message with the screen preview and one question. Never write to screens on your own, not even when the user asked for 'all screens' in the same message: the user has not seen which screens exist and whom they affect. If the user did not mention screens, still say that the fields are invisible without them and offer it in that same message. LIMITS: at most 50 fields per call; at most 10 contexts per field, 100 projects and 50 issue types per context; at most 100 top-level options per list and 100 children per option (cascadingselect); at most 500 options per list (children included) and 2000 options per call (a list shared by several contexts counts once per context). If the user wants more, ask them to shorten the list or split it. Calls do not overlap: if the tool answers that another call is running, wait and retry the same request. EXAMPLE. The user said \"a Severity dropdown with Low and High, for bugs in project PAY\": {\"dryRun\":true,\"fields\":[{\"name\":\"Severity\",\"typeKey\":\"select\",\"options\":[{\"value\":\"Low\"},{\"value\":\"High\"}],\"contexts\":[{\"projects\":[\"PAY\"],\"issueTypes\":[\"Bug\"]}]}]}. Keys and names come from list_projects and list_issue_types, never from memory. ERRORS. On FAILED, use errorCode, message and suggestions to fix the request or ask; never guess.",
+    "annotations": {
+      "title": "Создание пользовательских полей",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. true builds preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "description": "Field name as shown in Jira: exactly as the user wrote it, verbatim, including parenthesized parts, quotes, numbers and case. Never strip text you read as a type hint: the type comes only from an explicit indication, never from words cut out of the name. If you think part of the text is not the name, keep it in the preview and ask."
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional. A description of the field shown in Jira administration; leave out if the user gave none."
+              },
+              "typeKey": {
+                "type": "string",
+                "description": "Type key from list_custom_field_types. Short form (e.g. 'textfield', 'select', 'multiselect', 'cascadingselect', 'labels') is allowed for built-in types."
+              },
+              "searcherKey": {
+                "type": "string",
+                "description": "Optional. Omit to use the default searcher of the type."
+              },
+              "assets": {
+                "type": "object",
+                "description": "Optional. Configuration only for an Assets object field (com.riadalabs.jira.plugins.insight:rlabs-customfield-default-object), identical for every newly created context. Ask which object schema the user wants if not given. An object type the user names (for example 'object User') is the scope AQL objectType = \"User\": set filterScopeAql from it without asking, and show the AQL in the preview. Existing field settings are ignored and unchanged: to give an existing Assets field a new context use create_field_context with assets, and to change the schema or AQL of an existing context use update_field_contexts with assets. Assets object fields do not accept Jira options.",
+                "properties": {
+                  "objectSchemaId": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Required. Existing object schema id from list_assets_schemas, chosen by the user."
+                  },
+                  "filterScopeAql": {
+                    "type": "string",
+                    "description": "Optional scope AQL. When the user names an object type (for example 'object User'), pass objectType = \"User\": the type name in double quotes exactly as written, no other conditions invented. A filter the user wrote as AQL is passed as written. Omit when no object type or filter is requested."
+                  }
+                },
+                "required": ["objectSchemaId"],
+                "additionalProperties": false
+              },
+              "fileField": {
+                "type": "object",
+                "description": "Optional. Settings only for an Apwide File Field (com.apwide.document.file-field:apwide-doc-field), identical for every newly created context. Omit to keep the plugin defaults (any extension, 10 files, Jira's upload size limit). Pass only what the user asked for; never invent limits. Existing field settings are ignored and unchanged. File fields do not accept Jira options.",
+                "properties": {
+                  "allowedFileExtensions": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {"type": "string", "minLength": 1, "maxLength": 32},
+                    "description": "Allowed extensions such as \"pdf\" or \".docx\" (a leading dot is added). Omit to allow every file type."
+                  },
+                  "maxFiles": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "description": "Maximum number of files in the field. Default 10."
+                  },
+                  "maxFileSizeMb": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Maximum size of one file in megabytes. Omit to use Jira's attachment upload limit."
+                  },
+                  "readonly": {
+                    "type": "boolean",
+                    "description": "true = users cannot upload or remove files. Default false."
+                  },
+                  "autoClean": {
+                    "type": "boolean",
+                    "description": "true = a file removed from the field is deleted from storage. Default false."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "grid": {
+                "type": "object",
+                "description": "Optional. Table layout only for a Table Grid Next Generation field (tge.cloud:idalko-table-grid-custom-field-key), identical for every newly created context; it replaces the plugin's default columns (Order, Summary, Assignee, Status). Columns, their titles, types and list values come from the user: ask instead of inventing them. Show every column in the preview. Existing field settings are ignored and unchanged. Grid fields do not accept Jira options.",
+                "properties": {
+                  "columns": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "description": "Columns in display order.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
+                          "description": "Unique technical column id (letters, digits, '_'; starts with a letter), derived from the title in Latin, e.g. 'dueDate'. Used in JQL and the REST API."
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255,
+                          "description": "Column header exactly as the user wrote it."
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": ["string", "textarea", "number", "integer", "date", "datetime", "checkbox", "list", "multiselectlist", "userlist", "sequence"],
+                          "description": "string = one-line text; textarea = multi-line text; number = decimal; integer; date; datetime; checkbox; list = single choice; multiselectlist = several choices; userlist = Jira user; sequence = automatic row number."
+                        },
+                        "required": {
+                          "type": "boolean",
+                          "description": "true = a row cannot be saved without this cell. Default false."
+                        },
+                        "editable": {
+                          "type": "boolean",
+                          "description": "false = read-only column. Default true; a sequence column is always read-only."
+                        },
+                        "defaultValue": {
+                          "type": "string",
+                          "description": "Optional value of the cell in a new row: text for string/textarea, a number for number/integer, true/false for checkbox, one of options for list. Not supported for other types."
+                        },
+                        "options": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 100,
+                          "items": {"type": "string", "minLength": 1, "maxLength": 255},
+                          "description": "Required for list and multiselectlist only: the values the user named, in display order, unique."
+                        },
+                        "width": {
+                          "type": "integer",
+                          "minimum": 20,
+                          "maximum": 2000,
+                          "description": "Optional column width in pixels."
+                        },
+                        "decimals": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10,
+                          "description": "number only: digits after the decimal point. Default 2."
+                        }
+                      },
+                      "required": ["id", "title", "type"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "searchableColumns": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {"type": "string"},
+                    "description": "Optional ids of columns indexed for JQL search. Only those the user asked to search by."
+                  }
+                },
+                "required": ["columns"],
+                "additionalProperties": false
+              },
+              "options": {
+                "type": "array",
+                "maxItems": 100,
+                "description": "Only for types with supportsOptions=true, in display order, at most 100; used only by contexts where options is omitted. A context with options:[] stays empty and does not inherit this list. Values must be unique (case-insensitive). Ask the user for the values instead of inventing them. 'children' only for cascadingselect (exactly two levels).",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 255,
+                      "description": "The text of the option as the user will see it."
+                    },
+                    "children": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "description": "cascadingselect only: second-level options of this option, at most 100.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255,
+                            "description": "The text of the option as the user will see it."
+                          }
+                        },
+                        "required": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ]
+                }
+              },
+              "contexts": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "description": "REQUIRED. Where the field applies. Normally ONE element. Several only when the user wants separate contexts with disjoint projects. A project (by key or name: the same project) may be in only ONE project-scoped context of a field, even with different issue types; one project with several issue types is ONE context with all of them and one options list. Otherwise the preview fails before any plan: offer the user ONE shared context or SEPARATE fields, never choose for them. At most one global (allProjects) context; it may coexist with project-scoped contexts, as in create_field_context and update_field_contexts, but then Jira picks the project's own context first, so the global one does not apply in those projects (including issue types the project context does not list): the preview message warns, tell the user. After creation Jira is re-read: a result with status PARTIAL (errorCode CONTEXT_MISMATCH) means the field WAS created but its stored projects, issue types or options differ from the plan, or Jira could not be re-read to verify it; its message lists the differences and 'contexts' is what Jira really holds (empty if unreadable). Report that state and the message, never the requested scope; do not retry or recreate the field and never claim a rollback. Never fill it in without asking the user.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 255,
+                      "description": "Optional. Default: keys of the first five projects, or 'Global'."
+                    },
+                    "allProjects": {
+                      "type": "boolean",
+                      "description": "true = all projects. Only if the user said so. Give this OR projects, not both."
+                    },
+                    "projects": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Project keys (or exact names) from list_projects. Give this OR allProjects, not both."
+                    },
+                    "allIssueTypes": {
+                      "type": "boolean",
+                      "description": "true = all issue types. Only if the user said so. Give this OR issueTypes, not both."
+                    },
+                    "issueTypes": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Issue type names (or ids) from list_issue_types, sub-task types included if the user named them. Give this OR allIssueTypes, not both."
+                    },
+                    "options": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "description": "Options of this context only (same form as the field's options). Omit to inherit the field's options. An explicit [] creates an empty option list and does not inherit. A non-empty list replaces the field's options for this context; lists are never merged.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255,
+                            "description": "The text of the option as the user will see it."
+                          },
+                          "children": {
+                            "type": "array",
+                            "maxItems": 100,
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 255,
+                                  "description": "The text of the option as the user will see it."
+                                }
+                              },
+                              "required": [
+                                "value"
+                              ]
+                            },
+                            "description": "cascadingselect only: second-level options of this option, at most 100."
+                          }
+                        },
+                        "required": [
+                          "value"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "name",
+              "typeKey",
+              "contexts"
+            ]
+          },
+          "description": "The fields to create, one element per field. Ask the user for anything not stated; at most 50."
+        }
+      },
+      "required": ["dryRun", "fields"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "plan_field_screens",
+    "description": "Read-only. Find CREATE/EDIT/VIEW screens from the field’s actual project/issue-type contexts. Returns operations, tabs, field presence, context projects and outside-project sharing counts. Recommendations: RECOMMENDED = context projects only; CAUTION = shared outside context, so additions affect others; NOT_RECOMMENDED = default screen; ALREADY_PRESENT = no addition needed. New fields are invisible until added to screens. PROTOCOL. Skip this tool when the user named the project and issue type (or screenId) and this conversation already has the actual get_project_screens result of that project and get_screen_contents of that screenId: use edit_screen_layout dryRun for one screen or add_field_to_screens for several, take impact on other projects from otherProjects and SHARED_SCREEN, and propose no screen outside the named project. Otherwise call this right after create_custom_fields succeeded (also for EXISTS), with the customFieldId from the result, EXCEPT when any actual context has allProjects=true: for such a field, call only when the user explicitly requests screens across the instance. Then read one page without cursor, report its total/summary and project impact, and obtain scope confirmation before further pages or previews. NEVER apply screen additions without the user's confirmation of their preview; other read-only planning and dryRun=true need no prior screen consent. The user usually knows nothing about screens: explain in plain words ('the screen where an issue is created', 'the screen where it is edited and viewed'), say for which project each screen is, and say how many other projects a shared screen has. Suggest only RECOMMENDED screens by default. Offer CAUTION screens only after telling how many other projects they affect. Do NOT suggest the default screen (NOT_RECOMMENDED) yourself; but if the user explicitly asks for it, preview it, disclose how many projects it affects, and apply only after confirmation. 'All screens' in the user's words means all screens of this plan, not all screens of Jira. Results are paginated, with at most 200 screens per page. The first page already gives total and summary for all candidates before filtering. Never follow nextCursor just to count or give an overview. Read further pages only for screens going into the current add_field_to_screens preview; for RECOMMENDED screens keep recommendation=RECOMMENDED and the same fieldId. Read all pages only when the preview needs the complete selection. truncated does not mean another page exists. If continuation is rejected because the selection changed, discard the accumulated selection and restart. Never preview unseen screenIds. Then call add_field_to_screens with dryRun=true for the screens you suggest and show that preview together with one confirmation question, in ONE message: do not first ask 'shall I add it?' and only afterwards show the preview. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Call plan_field_screens separately for every field, even when fields were created together in the same contexts: whether a field is already present can differ. Build each field's selected screenId set from its own plan and the requested operations. Group fields in one add_field_to_screens call with fieldIds only when their selected screenId sets are identical; otherwise use separate calls. Never take the union of different fields' screen sets: every field is added to every screen in the call. The dry run shows per field what is really on each screen.",
+    "annotations": {
+      "title": "Подбор экранов для поля",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "description": "customFieldId from the create_custom_fields result, e.g. customfield_10123. Call separately per field. First-page total/summary cover all candidates; follow nextCursor only for screens needed in the current preview, not for counts or an overview. The same call repeats the same answer unless contexts or screens changed."
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque nextCursor from the preceding page. Keep the same fieldId and recommendation. If the selection changed, restart without cursor."
+        },
+        "recommendation": {
+          "type": "string",
+          "enum": ["RECOMMENDED"],
+          "description": "Optional. Return only RECOMMENDED screens. Omit to enumerate all recommendations."
+        }
+      },
+      "required": [
+        "fieldId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_field_to_screens",
+    "description": "Multi-screen field additions. For any ONE-screen layout request use edit_screen_layout instead, including add-only requests; never split a combined add/move/remove change into separate plans. Add custom fields or system fields (assignee, reporter, priority, duedate, labels, components and other fields Jira can place on a screen) to proposed screens for preview; apply only to screens the user confirmed. For custom fields take the screenId values from plan_field_screens. A system field has no contexts, so plan_field_screens does not apply to it: take screenId from get_project_screens of the project the user named, or a screenId the user gave; match a screen named by the user by its exact name, and if none or several match, show the candidates and ask. A screen read from get_project_screens may be shared with other projects: say so in the preview. Every field of fieldIds goes to every screen of screens, in the chosen tab: the tab given for that screen (exact id or name, case-insensitive), or the first tab when tab is omitted. Optional place is FIRST, LAST, BEFORE or AFTER; omitted place defaults to LAST (the end of the tab). BEFORE and AFTER require a nonblank anchor: an exact fieldId in that target tab, not a field name. Read get_screen_contents and all its pages to obtain the anchor fieldId; a bare numeric custom field id is normalized to customfield_N. Multiple fields added AFTER the same anchor preserve fieldIds request order. UNKNOWN_ANCHOR fails only that screen; independent valid screens can still succeed. Use a tab only if the user named it; an unknown tab fails with UNKNOWN_TAB and lists the screen's tabs. A new tab cannot be created: say so if asked. A screen that already has a field anywhere is reported as ALREADY_PRESENT for that field and not changed or moved. Each field has its own result for each screen. Use dryRun=true first, show the result to the user, and keep its planId. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Preview proposed screens before asking for agreement; no prior screen consent is needed for dryRun=true. One message contains all successful previews in the next executable batch and one confirmation question. Confirmation covers only those shown previews; preview any later split parts and obtain confirmation before applying them. A changed request needs a new preview and confirmation. Never apply to unconfirmed screens; a field is never put on screens automatically. Plan each custom field separately with plan_field_screens and build its selected screenId set from its own plan and the requested operations. Group fields in one call only when their selected screenId sets are identical; identical contexts alone are not sufficient. Fields that need different screens go in separate calls. At most 50 fields and 100 screens per call, and at most 500 additions (fields times screens): split a bigger request. A field id that does not exist, cannot be placed on a screen, or is listed twice refuses the whole call and nothing is changed. Calls do not overlap: if the tool answers that another call is running, wait and retry the same request. A per-screen UNKNOWN means the write may have been applied: read the screen and say so. NOT_ATTEMPTED screens were not started because an earlier screen failed in Jira. Never say a failed or partial call changed nothing; ask for a new preview before any retry. EXAMPLES: {\"fieldIds\":[\"customfield_10123\",\"customfield_10124\"],\"dryRun\":true,\"screens\":[{\"screenId\":10103},{\"screenId\":10104,\"tab\":\"Details\"}]}. The ids come from plan_field_screens, get_project_screens or the user, never from memory. ERRORS. On FAILED, use errorCode, message and suggestions to fix the request or ask; never guess.",
+    "annotations": {
+      "title": "Добавление полей на экраны",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "fieldIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "string"
+          },
+          "description": "Id of each field: a custom field id (customfield_10123 or bare 10123) or a system field id (assignee, reporter, priority, duedate, labels, components, ...); each field once; at most 50."
+        },
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. true builds preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "screens": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "properties": {
+              "screenId": {
+                "type": "integer",
+                "description": "Id of a screen from plan_field_screens (custom fields), get_project_screens, or given by the user."
+              },
+              "tab": {
+                "type": "string",
+                "description": "Optional exact id or name (case-insensitive) of an existing tab of that screen, only if the user named it. Omit for the first tab. A new tab cannot be created."
+              },
+              "place": {
+                "type": "string",
+                "enum": ["FIRST", "LAST", "BEFORE", "AFTER"],
+                "description": "Optional insertion location; defaults to LAST when omitted. BEFORE and AFTER require anchor; FIRST and LAST must not have anchor."
+              },
+              "anchor": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact fieldId in the target tab from get_screen_contents (read all pages), only for BEFORE or AFTER; not a field name. Bare numeric custom field ids normalize to customfield_N."
+              }
+            },
+            "required": [
+              "screenId"
+            ],
+            "additionalProperties": false
+          },
+          "description": "The screens to add the field to: only those the user agreed to; at most 100."
+        }
+      },
+      "required": ["dryRun", "fieldIds", "screens"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_field_required",
+    "description": "Set the required flag of fields per issue type in ONE project with ONE plan: project plus rows[]. An ordinary request for a single scope is ONE row; different flags, fields or issue types are more rows of the SAME call. Each row: fields (1 to 10 exact custom field names, customfield ids, bare numeric ids, or exact system field ids such as priority, duedate, components, fixVersions, versions, labels, reporter, environment, description), an explicit required (true or false) and issueTypes (exact names or ids) or allIssueTypes=true. ONE preview, ONE confirmation and ONE apply cover all rows; never split a batch into one call per issue type or per field, because separate plans change the same Field Configuration Scheme. A field of an issue type may be in only one row; overlapping or contradicting rows are refused with ROW_CONFLICT. There is no single-scope form: top-level fields, required, allIssueTypes or issueTypes are rejected. If the user did not name the project, ask before calling. The result status is WOULD_CHANGE_REQUIREMENTS (preview with a planId), REQUIREMENTS_CHANGED (applied), ALREADY_AS_REQUESTED (nothing to do, no plan), PARTIALLY_CHANGED or FAILED; per-issue-type and per-field results are in targets[].fields[] (WOULD_MAKE_REQUIRED, ALREADY_REQUIRED, MADE_OPTIONAL, ...). The system fields attachment and assignee cannot be made required through a Field Configuration (confirmed by the Jira owner): required=true on either is refused at preview with FIELD_REQUIRED_UNSUPPORTED, no planId and no writes, whether or not it is on CREATE, and refuses the whole batch; a custom field merely named Attachment or Assignee is not affected, required=false is unchanged. Never silently leave such a field optional and report the requirement as done; a workflow validator is a separate mechanism not available in this tool. Any UNKNOWN_FIELD, AMBIGUOUS_FIELD, LOCKED_FIELD or FIELD_REQUIRED_UNSUPPORTED in any row rejects the entire preview; no partial plan is built. For ambiguous names show every candidate with id, name and typeName/typeKey and ask which id to use; never choose yourself. Jira's mandatory fields (summary, issuetype, ...) cannot become optional and are not changed unless named. A custom field must be in context for every selected project/issue-type pair; system fields have no contexts. The tool works with an explicit or Jira's default Field Configuration Scheme. Required is stored per Field Configuration: issue types of one configuration that end with the same result share ONE new copy; the shared configuration is edited in place only when every project type using it ends with that result; types that need no change and unselected types keep the original (unchangedIssueTypes). Copies need a scheme used only by this project; SHARED_FIELD_CONFIGURATION_SCHEME means offer clone_project_field_configurations first, or naming the sharing types too. An original configuration that loses all its types to copies stays unassigned and is not deleted. Use dryRun=true first. Show ONE consequences table with project, all rows, scheme, each configuration and issue type, per-field changes and ALREADY_* states, any proposed copy, types that move or stay, and every other project affected by a shared configuration (or that none are affected). Explain that required fields may prevent creation or editing until values exist; optional changes no issue data and leaves workflow validators and app rules in force. For required=true the preview checks, for every selected issue type, that the field is in context, configurable and not hidden in its Field Configuration, and is on the effective CREATE screen of that type (DEFAULT screen mapping respected; a field only on EDIT/VIEW or on a screen not assigned to the project does not count; field order does not matter). Every problem pair is returned together in fieldErrors (FIELD_NOT_APPLICABLE, FIELD_HIDDEN, FIELD_NOT_ON_CREATE_SCREEN, with issue type and CREATE screen id/name in the message) with no planId and nothing changed; a field that is already required but not fillable on CREATE is refused too. required=false is not blocked by the CREATE screen. If a screen cannot be read the result is JIRA_ERROR, never a plan. So order is: project and issue types, contexts and workflow, screen layout (edit_screen_layout / add_field_to_screens), screen assignment (set_project_operation_screens), and only then required; do not preview required before the field is on the effective CREATE screen of every selected type. A standalone screen is not an assigned CREATE screen. Each screen change needs its own preview and yes, and the required preview made after it needs its own shown table and yes; never apply it on an earlier confirmation. Ask ONE confirmation for the whole shown preview. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. PREVIEW_STALE requires a new shown preview and confirmation. After PARTIALLY_CHANGED or FAILED never repeat the write blindly and never widen the scope without a separately shown preview and consent; partialEffect lists applied, compensated, leftBehind and notStarted objects.",
+    "annotations": {
+      "title": "Настройка обязательного поля проекта",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. true builds a preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required for preview. Exact project key or name from list_projects."
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Required for preview. One plan for all rows: each row sets one required flag for its fields in its issue types. A single scope is one row. A field of an issue type may appear in only one row (ROW_CONFLICT otherwise).",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fields": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1},
+                "description": "Exact custom field names/ids or system field ids of this row, unique after resolution to fieldId."
+              },
+              "required": {
+                "type": "boolean",
+                "description": "true makes these fields required, false makes them optional, for this row's issue types."
+              },
+              "allIssueTypes": {
+                "type": "boolean",
+                "enum": [true],
+                "description": "Use true to apply this row to every issue type of the project. Mutually exclusive with issueTypes."
+              },
+              "issueTypes": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 50,
+                "uniqueItems": true,
+                "items": {"type": "string"},
+                "description": "Exact issue type names or ids from list_issue_types. Mutually exclusive with allIssueTypes."
+              }
+            },
+            "required": ["fields", "required"],
+            "oneOf": [
+              {"required": ["allIssueTypes"], "not": {"required": ["issueTypes"]}},
+              {"required": ["issueTypes"], "not": {"required": ["allIssueTypes"]}}
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["dryRun", "project", "rows"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "clone_project_field_configurations",
+    "description": "Give one project an exact private copy of its current Field Configuration Scheme and every Field Configuration referenced by that scheme, preserving issue-type mappings, field order, visibility, required flags, descriptions and renderers. Use this before changing a shared field configuration when other projects must remain unchanged. The project is required and must come from list_projects. Copy names are generated from the project key and made unique. If the project uses Jira's default scheme or default field configuration, explicit copies are created. Use dryRun=true first. Show a table containing the scheme and every field configuration with source/new names and otherProjectsTotal; explain that the project will be reassociated, existing issues are not changed, and listed other projects stay on the originals. Ask for confirmation. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. CLONED is authoritative completion; ALREADY_SEPARATE means no copy was needed. PREVIEW_STALE requires a new preview and confirmation.",
+    "annotations": {
+      "title": "Копирование конфигураций полей проекта",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. true builds a preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required for preview. Exact project key or name from list_projects."
+        }
+      },
+      "required": ["dryRun", "project"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_field_configurations",
+    "description": "Read-only; two mutually exclusive modes. MODE 1 {project[, fields]} reads ONE project's field configuration setup: its Field Configuration Scheme (defaultScheme=true means Jira's implicit default scheme; schemeOtherProjects are other projects on the same scheme), defaultMapping (the configuration of issue types without their own row), mappings (every issue type of the project -> its effective Field Configuration; explicit=false means it falls to the DEFAULT row), otherEntities (scheme rows for issue types not in this project; they act in other projects of the scheme), and fieldConfigurations (each distinct configuration the project uses, with other projects and schemesTotal sharing it). Optional fields (custom field names/ids or system field ids, at most 50) add each field's required/hidden/present flag in every configuration and locked=true when Jira requires the field everywhere. Pass every field you need in ONE call; never repeat the same call without a write in between. Field Configuration Schemes belong to projects, not issue types: 'attach to Task' means the Task row of the project's scheme. ALWAYS call this before set_field_required with a shared configuration, create_field_configuration, create_field_configuration_scheme, assign_field_configuration_scheme or set_field_configuration_mappings, and show the user a table issue type -> configuration (who else uses it). Ids in the result address configurations and schemes in those tools; DEFAULT addresses Jira's defaults. If status is FAILED with errorCode AMBIGUOUS_FIELD, show every candidate and ask the user which id to use. MODE 2 {kind, id | name[, offset, limit]} finds Field Configurations (kind CONFIGURATION) or Field Configuration Schemes (kind SCHEME) independent of any project, including standalone ones no project uses, e.g. after an interrupted create; use it to find such an object (also by a name the user gave), never create it again or search by guessing: with id (a positive id or DEFAULT) it returns that one object, or FAILED UNKNOWN_FIELD_CONFIGURATION/UNKNOWN_SCHEME; with name (case-insensitive part of the name) it returns the matching objects sorted by name and id, at most limit per page (default 20, max 50), total counts all, nextOffset is the offset of the next page (absent or null on the last): call again with it and the same name until null. Names are not unique: several items with one name are candidates, never pick one by name, show them with their ids and ask. No match is status OK with total 0. Each item has its id, name, kind and usage. usage for a CONFIGURATION is a page of links (scheme + issue type row -> this configuration; defaultRow=true is the scheme's DEFAULT row; fallback=true means the scheme has NO DEFAULT row, so its issue types without their own row get Jira's Default Field Configuration, no physical row exists), with total links and schemesTotal; usage for a SCHEME is a page of projects with total. DEFAULT is Jira's own object and has no id (id null). usage.status READ means Jira was read successfully, NOT that every link is listed: usage.truncated=true means total is larger than the page; read the rest with kind + id + usageOffset=nextUsageOffset (usageLimit default 20, max 100) until nextUsageOffset is absent. A list-by-name page shows the first 20 links per item. usage.status UNAVAILABLE means Jira could not read where the object is used: this is unknown, not unused, and never a reason to call an object unused or deletable. usageComplete=true on a response means every usage is READ and fully included; false means some usage is UNAVAILABLE or truncated. Only a READ, non-truncated usage with total 0 is a verified 'unused' at the moment of the read; never say it is safe to delete from less, and never delete automatically. This tool never deletes or changes anything. Give EITHER project/fields OR kind with id/name (usageOffset/usageLimit only with id); any mix is refused before reading.",
+    "annotations": {
+      "title": "Конфигурации полей: проект и поиск",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Mode 1. Exact project key or name from list_projects."
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1},
+          "description": "Mode 1, optional. Exact custom field names, customfield ids, or system field ids whose flags to report."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["CONFIGURATION", "SCHEME"],
+          "description": "Mode 2. CONFIGURATION = Field Configuration; SCHEME = Field Configuration Scheme."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^(DEFAULT|[1-9][0-9]{0,17})$",
+          "description": "Mode 2. Exact id (digits) or DEFAULT. Exactly one of id and name."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "\\S",
+          "description": "Mode 2. Case-insensitive part of the name. Exactly one of id and name."
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Mode 2, with name only. nextOffset of the previous page; omit for the first page."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Mode 2, with name only. Page size, default 20."
+        },
+        "usageOffset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Mode 2, with id only. nextUsageOffset of the previous page of this object's usage; omit for the first."
+        },
+        "usageLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Mode 2, with id only. Usage links/projects per page, default 20."
+        }
+      },
+      "oneOf": [
+        {"required": ["project"], "not": {"anyOf": [{"required": ["kind"]}, {"required": ["id"]}, {"required": ["name"]}, {"required": ["offset"]}, {"required": ["limit"]}, {"required": ["usageOffset"]}, {"required": ["usageLimit"]}]}},
+        {"required": ["kind"], "not": {"anyOf": [{"required": ["project"]}, {"required": ["fields"]}]},
+         "oneOf": [{"required": ["id"], "not": {"anyOf": [{"required": ["offset"]}, {"required": ["limit"]}, {"required": ["name"]}]}}, {"required": ["name"], "not": {"anyOf": [{"required": ["id"]}, {"required": ["usageOffset"]}, {"required": ["usageLimit"]}]}}]}
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "create_field_configuration",
+    "description": "Create ONE new Field Configuration as an exact copy of an existing one (copyFrom: an id from get_field_configurations, or DEFAULT for Jira's Default Field Configuration, which is also the default when omitted). The copy keeps every field's required/hidden flag, description and renderer. It is a new global object used by no scheme and no project, so no issue and no other project is affected until a scheme maps an issue type to it (create_field_configuration_scheme or set_field_configuration_mappings). The name is required and must be unique: NAME_TAKEN returns a free name in suggestions; ask the user before using it. Use dryRun=true first, show name, copyFrom and that nothing is assigned, then apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. In a plan that continues with a scheme, this step may be listed with the scheme as one creation-only plan. PREVIEW_STALE requires a new preview and confirmation. Result id: in the terminal get_operation result (status COMPLETED, result.status CREATED) the new configuration id is result.fieldConfiguration.id (also result.report.created[0].id); pass it as fieldConfiguration of create_field_configuration_scheme rows. QUEUED/RUNNING does not prove creation; after a reconnect read the known operation with get_operation; a lost start_operation response never permits sending the same apply again.",
+    "annotations": {
+      "title": "Создание конфигурации полей",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. true builds a preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Required for preview. Unique name of the new field configuration, as the user gave it."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Optional. Omit to keep copyFrom's description."
+        },
+        "copyFrom": {
+          "type": "string",
+          "pattern": "^([1-9][0-9]*|DEFAULT)$",
+          "description": "Optional. Field configuration id to copy, or DEFAULT (the default)."
+        }
+      },
+      "required": ["dryRun", "name"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "create_field_configuration_scheme",
+    "description": "Create ONE new Field Configuration Scheme from rows issueType -> fieldConfiguration. issueType is an exact name or id from list_issue_types, or DEFAULT for the row every other issue type uses; the DEFAULT row is required. fieldConfiguration is an existing id from get_field_configurations or create_field_configuration, or DEFAULT for Jira's Default Field Configuration. The scheme is created without any project (assigned=false): no issue and no project is affected until assign_field_configuration_scheme assigns it, which needs its own preview and confirmation. The name is required and must be unique: NAME_TAKEN returns a free name in suggestions; ask the user before using it. Use dryRun=true first; show the scheme name and every row as a table. A configuration created by create_field_configuration in the same plan has no id before it is applied: preview this scheme after that apply; its creation-only effect may already be confirmed as PENDING. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. PREVIEW_STALE requires a new preview and confirmation. Result id: in the terminal get_operation result the new scheme id is result.scheme.id (also result.report.created[0].id); assign_field_configuration_scheme takes it as scheme. result.report.reused lists the existing configurations the rows reference and result.mappings shows each row's actual configuration id. QUEUED/RUNNING does not prove creation; after a reconnect read the known operation with get_operation; a lost start_operation response never permits sending the same apply again.",
+    "annotations": {
+      "title": "Создание схемы конфигураций полей",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. true builds a preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Required for preview. Unique name of the new scheme, as the user gave it."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Optional scheme description."
+        },
+        "mappings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "properties": {
+              "issueType": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact issue type name or id, or DEFAULT. Each issue type at most once."
+              },
+              "fieldConfiguration": {
+                "type": "string",
+                "pattern": "^([1-9][0-9]*|DEFAULT)$",
+                "description": "Field configuration id, or DEFAULT."
+              }
+            },
+            "required": ["issueType", "fieldConfiguration"],
+            "additionalProperties": false
+          },
+          "description": "Required for preview. Rows of the scheme, including the DEFAULT row."
+        }
+      },
+      "required": ["dryRun", "name", "mappings"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "assign_field_configuration_scheme",
+    "description": "Assign an EXISTING Field Configuration Scheme to ONE project (scheme: an id from get_field_configurations or create_field_configuration_scheme), or DEFAULT to return the project to Jira's default scheme. Issue data is not changed, but every issue of the project is then created and edited under the new required/hidden rules. ALWAYS call get_field_configurations first. The preview lists every issue type whose field configuration changes (before -> after) and the fields whose required or hidden flag changes (custom fields only where in context; at most 50 per issue type, truncated with fieldsTotal). Warnings: NEWLY_REQUIRED (creating issues and editing existing issues without a value will demand one), NEWLY_HIDDEN (values remain but are not shown), SHARED_SCHEME (other projects use the scheme too), SCHEME_ORPHANED (the old scheme is left unused, not deleted). Show schemeBefore -> schemeAfter, the changes table and every warning in plain words before ONE question; this step always needs its own preview and the user's yes, never a PENDING approval. ALREADY_ASSIGNED is complete and needs no apply. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. PREVIEW_STALE requires a new preview and confirmation. To undo, assign schemeBefore again with a new preview.",
+    "annotations": {
+      "title": "Назначение схемы конфигураций полей проекту",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. true builds a preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required for preview. Exact project key or name from list_projects."
+        },
+        "scheme": {
+          "type": "string",
+          "pattern": "^([1-9][0-9]*|DEFAULT)$",
+          "description": "Required for preview. Field configuration scheme id, or DEFAULT for Jira's default scheme."
+        }
+      },
+      "required": ["dryRun", "project", "scheme"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_field_configuration_mappings",
+    "description": "Change rows of ONE existing Field Configuration Scheme (scheme id from get_field_configurations): which Field Configuration an issue type uses. This is how a Field Configuration is attached to an issue type such as Task. A patch, not the full list: listed rows are set, other rows stay. issueType: exact name or id from list_issue_types, or DEFAULT for the row every other issue type uses. fieldConfiguration: an id, DEFAULT for Jira's Default Field Configuration, or INHERIT to delete the issue type's own row so it falls to DEFAULT (the DEFAULT row cannot INHERIT). Jira's default scheme cannot be edited: FAILED DEFAULT_SCHEME; offer clone_project_field_configurations, or create_field_configuration_scheme plus assign_field_configuration_scheme. The change applies to EVERY project using the scheme: the preview lists each requested row before -> after, projectsTotal, and every affected project with the issue types whose configuration changes and the fields whose required/hidden flag changes. Warnings: SHARED_SCHEME, NEWLY_REQUIRED, NEWLY_HIDDEN. Show the rows, every affected project and every warning before ONE question; this step always needs its own preview and the user's yes. NO_CHANGE is complete and needs no apply. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. PREVIEW_STALE requires a new preview and confirmation. To undo, set each row's before value with a new preview.",
+    "annotations": {
+      "title": "Сопоставление типов задач и конфигураций полей в схеме",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "Required. true builds a preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "scheme": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$",
+          "description": "Required for preview. Id of the field configuration scheme to change."
+        },
+        "mappings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "properties": {
+              "issueType": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact issue type name or id, or DEFAULT. Each issue type at most once."
+              },
+              "fieldConfiguration": {
+                "type": "string",
+                "pattern": "^([1-9][0-9]*|DEFAULT|INHERIT)$",
+                "description": "Field configuration id, DEFAULT, or INHERIT (delete the issue type's own row)."
+              }
+            },
+            "required": ["issueType", "fieldConfiguration"],
+            "additionalProperties": false
+          },
+          "description": "Required for preview. Rows to set; other rows stay unchanged."
+        }
+      },
+      "required": ["dryRun", "scheme", "mappings"],
+      "additionalProperties": false
+    }
+  }
+]

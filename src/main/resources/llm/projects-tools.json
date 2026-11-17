@@ -1,0 +1,195 @@
+[
+  {
+    "name": "list_project_leads",
+    "description": "Find active Jira users who can be named as the lead of a new project. Supply a nonblank query; results include username, displayName and userKey, never email. Show matching users and ask which one the user means if there is any ambiguity. Use the exact username or userKey returned here for create_project; never infer a lead from a display name and never silently use the administrator as lead. Example: {\"query\":\"alex\"}.",
+    "annotations": {
+      "title": "Поиск руководителей проекта",
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {"type": "string", "minLength": 1, "description": "Nonblank username, user key or name to search among active Jira users."}
+      },
+      "required": ["query"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "create_project",
+    "description": "Create one Jira project from a supported project template, or read the template catalog. Two mutually exclusive modes selected by action. CATALOG: {action:\"list_templates\"} alone is a read-only administrator call: no plan, no confirmation, no operation. It returns templates[] (templateKey, projectTypeKey, name, description, supported) sorted by projectTypeKey then templateKey; status OK with an empty list means Jira reports no template, status FAILED (errorCode JIRA_ERROR) means the catalog could not be read and says nothing about which templates exist. Take templateKey ONLY from this list and ONLY from a row with supported=true (Business: Project Management, Task Management, Process Management; Software: Scrum, Kanban, Basic); never invent or guess a key or a project type, the type comes from the template. A template with supported=false (for example Jira Service Management) is listed but cannot be used: UNSUPPORTED_TEMPLATE. If the user has not named a template, show the supported ones and ask. CREATE: one project, optionally with a COMPLETE FINAL issue-type set, in ONE preview, ONE confirmation and ONE operation. Preview with {action:\"create\",templateKey,dryRun:true,name,key,lead} and optionally issueTypes / newIssueTypes / defaultIssueType; a successful preview returns a short-lived planId and the projectType and templateKey of the plan. Show that preview and ask for human confirmation. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}} (no action, no template, no preview fields); never directly. The form without action and templateKey is not accepted, and list_templates is never applied. planId proves that the same actor previewed the same current Jira plan, not that a human approved it. A missing, expired, foreign, reused or changed plan, or a template that disappeared before apply, returns PREVIEW_STALE: preview again and ask for confirmation again. TEMPLATE_UNAVAILABLE: Jira has no template with that key (read the catalog again, never guess another key). UNSUPPORTED_TEMPLATE: the key is not one of the supported templates or Jira reports another project type for it. TEMPLATE MODE: without issueTypes and newIssueTypes the project keeps the selected template's own issue types, which are not listed and not chosen by you; never call that 'the requested types'. EXPLICIT SET: with issueTypes (existing types, exact name or id) and/or newIssueTypes (definitions reused when the exact name and kind exist, otherwise created as global types) the two lists are the COMPLETE final set; every other type of the new project (the template's types) leaves the project and is NEVER deleted globally; the real list of excluded types is only known after creation and is returned in issueTypeSet.assignment.excludedTypes. defaultIssueType is a local key or a type of the set and must be a standard type; without it the first standard type of the set (issueTypes first, then newIssueTypes) is the default and the preview shows it in issueTypeSet.defaultIssueType/defaultSource: show it and let the user change it. If the user did not choose a default, do not invent one: show the default the rule picked and let the user change it. Use list_issue_types first and pass an existing localized type by its exact name (it is reused) instead of creating an English duplicate. Do not use create_issue_types or set_project_issue_types before or after for the same set. In the preview show the project, projectType, templateKey, issueTypeSet.entries (key, name, kind, WOULD_CREATE or EXISTS), the default, globalImpact and residualRisks (new global types join Jira's default issue-type scheme and become available to every project using it). The apply result: status CREATED only when the project exists AND the final set is assigned (issueTypeSet.assignment.state COMPLETED, with the real issueTypes, excludedTypes, defaultIssueType and scheme). Status PARTIALLY_CHANGED means the project (projectId, key) exists and something is not complete: read issueTypeSet.entries[].status (CREATED, EXISTS, FAILED, UNKNOWN, NOT_EXECUTED) and assignment.state (NOT_STARTED: the project's types were not touched; PARTIALLY_CHANGED or UNKNOWN: see assignment.execution). An UNKNOWN entry id is only observed, never use it. A step that is not complete blocks the next one: an incomplete type step means the set was NOT assigned; an excluded template type that already has issues is never migrated silently (assignment NOT_STARTED, errorCode MAPPING_REQUIRED): report it and offer set_project_issue_types with a new plan. Nothing is rolled back and nothing is retried automatically; report the project and every created type with their ids from result.report. A Software project also gets a Jira Software board and filter from its template that Control does not track: its creation cannot be undone by Control (undo is refused before anything is deleted); tell the user so and do not offer undo for it. After a reconnect read the known operation with get_operation; a lost start_operation response never permits sending the same apply again. The plugin lock does not stop changes made in Jira's own UI. An existing matching project of the same project type yields EXISTS with no write in template mode (templateKey is null: its own template is unknown): say so and ask whether to reuse it or use a new name and key; with an explicit set an existing key is KEY_CONFLICT (use set_project_issue_types for that project). An existing project with the key but another project type is KEY_CONFLICT. An EXISTS project may have another template: never claim its workflows, issue types or screens match the selected template unless read from Jira. KEY_CONFLICT / NAME_CONFLICT: ask for a different key / name; changing only the lead cannot free them. LEAD_CONFLICT: never change the existing project's lead; ask whether another project or lead was meant. On FAILED, present errorCode, message and suggestions; never rename, re-key, change a lead or retry a write silently. Software creation is covered by unit tests only and is not verified on a live Jira.",
+    "annotations": {
+      "title": "Создание проекта по шаблону (Business/Software)",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "list_templates",
+            "create"
+          ],
+          "description": "list_templates: read-only template catalog, no other argument. create: preview of a project from templateKey."
+        },
+        "templateKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Only with action=create. Exact templateKey of a row of list_templates with supported=true; never guessed."
+        },
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Build a read-only preview and issue planId. Apply only through start_operation."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Requested Jira project name."
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Requested Jira project key; never auto-generate or change it."
+        },
+        "lead": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact active Jira username or userKey, not a display name."
+        },
+        "issueTypes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 500,
+          "uniqueItems": true,
+          "description": "Preview only. Existing issue types of the complete final set (exact name or id from list_issue_types). Omit issueTypes and newIssueTypes for template mode.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "newIssueTypes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Preview only. Definitions of types of the final set that may not exist yet. Each is REUSED when an issue type with this exact name (without case) and the same kind exists, and CREATED (a global type) otherwise; an existing type of the other kind or an ambiguous name fails the whole request. key is a local label used in the answer and in defaultIssueType. Omit issueTypes and newIssueTypes for template mode.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+                "description": "Local label of this item, unique in the request (for example consult). Not a Jira key."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60,
+                "description": "Exact name chosen by the user, or the exact name of an existing type to reuse."
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional description for a newly created type; an existing type's description is never changed."
+              },
+              "subtask": {
+                "type": "boolean",
+                "description": "Required explicitly. false means a standard issue type; true means a sub-task type. Ask if the user has not chosen the kind."
+              }
+            },
+            "required": [
+              "key",
+              "name",
+              "subtask"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "defaultIssueType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Preview only. Local key of a definition, or exact name or id of a standard type of the set. Only with an explicit set."
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "oneOf": [
+        {
+          "properties": {
+            "action": {
+              "const": "list_templates"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "templateKey"
+                ]
+              },
+              {
+                "required": [
+                  "dryRun"
+                ]
+              },
+              {
+                "required": [
+                  "name"
+                ]
+              },
+              {
+                "required": [
+                  "key"
+                ]
+              },
+              {
+                "required": [
+                  "lead"
+                ]
+              },
+              {
+                "required": [
+                  "issueTypes"
+                ]
+              },
+              {
+                "required": [
+                  "newIssueTypes"
+                ]
+              },
+              {
+                "required": [
+                  "defaultIssueType"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "action": {
+              "const": "create"
+            }
+          },
+          "required": [
+            "templateKey",
+            "dryRun",
+            "name",
+            "key",
+            "lead"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+]

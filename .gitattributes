@@ -1,0 +1,8 @@
+# Saved dialogues whose bytes are pinned by SHA-256 in issuetypes-partial-result.test.mjs and customfields-create-screen-names.test.mjs.
+evals/offline/fixtures/issuetypes-partial-result-run/** -text
+evals/offline/fixtures/create-screen-names-run/** -text
+
+# Kept in the development repository, left out of `git archive` exports (public repository).
+specs/** export-ignore
+.omp/** export-ignore
+AGENTS.md export-ignore

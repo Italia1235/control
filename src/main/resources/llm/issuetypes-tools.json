@@ -1,0 +1,204 @@
+[
+  {
+    "name": "set_project_issue_types",
+    "description": "Replace ONE project's complete issue-type set. Read list_projects and list_issue_types first; the set is the final set, not a patch: issueTypes (existing types, names or ids) plus optional newIssueTypes (definitions reused when the exact name and kind exist, otherwise created as global types in the same plan and operation, so there is no separate create step and no separate confirmation). Used removed types require explicit mappings (targets must be existing types of the set); keep standard/sub-task kind; never delete a type globally. On STATUS_CONFLICT ask for the named statusMappings, never infer them. defaultIssueType (a local key or a standard type of the set) sets the project's default; without it the project keeps its current default if that type stays, else the first standard type of the set becomes the default: the preview shows it in issueTypeSet. Preview, show added/removed, mappings/counts/workflows/statuses, scheme.action, issueTypeSet.entries (WOULD_CREATE or EXISTS), globalImpact and warnings; confirm, then apply dryRun=false/planId. Shared/default schemes become private. Limits: 500 final types, 10000 converted issues including late issues. Workflow+type is one non-atomic unit. Read execution in apply/get_operation even when result=null. Report completed, unknown and notStarted separately; notStarted=null means unknown, not zero. An UNKNOWN pair means «проверьте задачу вручную», using its issueId. FAILED/CANCELLED or absent execution never prove nothing changed. With newIssueTypes the result lists every definition in issueTypeSet.entries (key, status CREATED, EXISTS, FAILED, UNKNOWN, NOT_EXECUTED, id) and the real assignment in issueTypeSet.assignment; the ids are also in report.created/reused. Status PARTIALLY_CHANGED means some types were created and REMAIN (or an outcome is UNKNOWN) and the set is not completely assigned; a type step that is not complete blocks the assignment (assignment.state NOT_STARTED); an UNKNOWN entry id is only observed, never use it; a type that changed meanwhile (for example issues appeared in a leaving type) is never migrated silently: it returns MAPPING_REQUIRED and needs a new plan. Do not retry writes and do not repeat the same apply after a lost response: read the known operation; offer read-only reconciliation. Any next write requires a new preview and confirmation.",
+    "annotations": {
+      "title": "Изменение набора типов задач проекта",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Required. true builds preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Project key or name. Use list_projects first."
+        },
+        "issueTypes": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 500,
+          "uniqueItems": true,
+          "description": "Preview only, always present: existing issue types of the complete final set, names or ids from list_issue_types (an empty array is allowed only together with newIssueTypes). Types omitted from the set leave the project.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "mappings": {
+          "type": "array",
+          "description": "Preview only. Explicit conversions for removed types that have issues. Do not invent them.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Removed issue type name or id."
+              },
+              "to": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Target issue type in issueTypes."
+              },
+              "statusMappings": {
+                "type": "array",
+                "description": "Explicit status conversions needed only when to uses a workflow missing an occupied source status.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Current status named by STATUS_CONFLICT."
+                    },
+                    "to": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Status in the target workflow, chosen by the user."
+                    }
+                  },
+                  "required": [
+                    "from",
+                    "to"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "newIssueTypes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Preview only. Definitions of types of the final set that may not exist yet. Each is REUSED when an issue type with this exact name (without case) and the same kind exists, and CREATED (a global type) otherwise; an existing type of the other kind or an ambiguous name fails the whole request. key is a local label used in the answer and in defaultIssueType. The final set is issueTypes plus these types.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+                "description": "Local label of this item, unique in the request (for example consult). Not a Jira key."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60,
+                "description": "Exact name chosen by the user, or the exact name of an existing type to reuse."
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional description for a newly created type; an existing type's description is never changed."
+              },
+              "subtask": {
+                "type": "boolean",
+                "description": "Required explicitly. false means a standard issue type; true means a sub-task type. Ask if the user has not chosen the kind."
+              }
+            },
+            "required": [
+              "key",
+              "name",
+              "subtask"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "defaultIssueType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Preview only. Local key of a definition, or exact name or id of a standard type of the set, to become the project default."
+        }
+      },
+      "required": [
+        "dryRun",
+        "project",
+        "issueTypes"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "create_issue_types",
+    "description": "Create or reuse a BATCH of global Jira issue types in ONE preview, ONE confirmation and ONE operation; a single type is a batch of one. issueTypes lists every wanted type with a local key (a short label of the item, unique in the request; it is only used to name the item in the answer), the exact name chosen by the user, an optional description and an explicit subtask (false for a standard issue, true for a sub-task; never infer or default it). Call list_issue_types first. When the user means a semantic type (for example a bug or task), reuse an unambiguous existing localized type by passing its exact name; do not create an English duplicate just because its exact English name is absent. If several existing types fit, show their names, ids and subtask kind and ask. The preview resolves the WHOLE batch before anything is planned: a case-insensitive exact existing name of the same kind is reused (results[].status EXISTS, its id and its existing name/description are kept, never updated); a missing name is WOULD_CREATE; duplicate keys or names inside the request, an ambiguous existing name, an existing name of the other kind, a missing key/name/subtask or more than 20 items fail the whole batch with the offending items marked FAILED (errorCode VALIDATION_ERROR or NAME_CONFLICT) and no plan; if everything already exists the status is EXISTS and no plan is issued. Otherwise one planId covers the entire batch: show the table of results (key, name, kind, create or reuse) and the global impact (each new type is added by Jira to the default issue-type scheme and so becomes available to every project that uses it; never claim other projects are unaffected) and ask ONE confirmation. Apply only via start_operation with {toolName, arguments:{dryRun:false, planId}}; never directly. Creating the first type of the batch does not invalidate the plan for the others. The plan fingerprint is compared once, before the first write: any change of Jira's issue types between preview and the start of apply (or an expired, foreign or already used plan) returns PREVIEW_STALE with nothing written, and needs a new preview and confirmation. While the batch runs the fingerprint is not recomputed: only the next name and the reused types are re-checked, so other concurrent changes are not detected and there is no atomicity. Result ids: in the terminal get_operation result, result.results[] has one entry per item in request order with key, status (CREATED, EXISTS, FAILED, UNKNOWN, NOT_EXECUTED) and issueType.id; only an id of a CREATED or EXISTS item is the canonical Jira id to pass to set_project_issue_types or other tools, the same ids are in result.report.created/reused. An id on an UNKNOWN item is only observed in Jira, not confirmed as created by this operation: never use it in a dependent step, never remove it, and it is not in the report. Status CREATED means every missing type was created. Status PARTIALLY_CHANGED means some types were created and REMAIN in Jira (listed with ids) and/or one write has an UNKNOWN outcome (Jira failed and the type may or may not exist), the first failed item says why (errorCode JIRA_ERROR or NAME_CONFLICT when someone created the same name meanwhile) and later creations are NOT_EXECUTED; nothing is rolled back and nothing is retried automatically; report it item by item, never say nothing was created while an item is UNKNOWN, and, after checking Jira and confirmation, preview the same list again - existing types are then reused and only the missing ones are planned. Status FAILED with an apply means every attempted write is known to have failed. QUEUED/RUNNING does not prove creation; after a reconnect read the known operation with get_operation; a lost start_operation response never permits sending the same apply again. The plugin lock does not stop changes made in Jira's own UI, so a concurrent conflict is reported per item, not prevented. For a project specification, create the missing types here before previewing set_project_issue_types with the complete final set; absence from list_issue_types is a creation dependency, not by itself a blocker. Plans are actor-bound, expiring and single-use.",
+    "annotations": {
+      "title": "Пакетное создание глобальных типов задач",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "dryRun": {
+          "type": "boolean",
+          "enum": [
+            true
+          ],
+          "description": "Required. true builds a preview and returns planId; false is an apply payload for start_operation only; never call this tool directly with false."
+        },
+        "issueTypes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "description": "Preview only. Every wanted global issue type of the batch. Keys and names (case-insensitive) must be unique.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+                "description": "Local label of this item, unique in the request (for example consult). Not a Jira key."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60,
+                "description": "Exact name chosen by the user, or the exact name of an existing type to reuse."
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional description for a newly created type; an existing type's description is never changed."
+              },
+              "subtask": {
+                "type": "boolean",
+                "description": "Required explicitly. false means a standard issue type; true means a sub-task type. Ask if the user has not chosen the kind."
+              }
+            },
+            "required": [
+              "key",
+              "name",
+              "subtask"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "dryRun",
+        "issueTypes"
+      ],
+      "additionalProperties": false
+    }
+  }
+]
