@@ -164,6 +164,7 @@ Manage apps → Control → **Audit** (`/plugins/servlet/control/applies`, то�
 
 - Java 17, Atlassian SDK 9.1.1, Node.js 20.6+ для эвалов (`--env-file`). `atlas-run` поднимает Jira 10.3 с плагином и JSM на `http://localhost:2990/jira` (admin/admin). Первый запуск требует сети (репозитории в `.mvn/settings.xml`), дальше можно `atlas-run -o`.
 - `atlas-mvn test` — модульные тесты. Проверка собранного JAR: `atlas-mvn -o -q test -Dtest=PluginPackagingTest -Dcontrol.packagedJar=target/control-<версия>.jar`.
+- GitHub Actions собирает и проверяет устанавливаемый JAR плагина, затем сохраняет его как артефакт запуска `control-jar`; отдельный `-tests.jar` исключён.
 - Wired-тесты — только на одноразовой Jira: `-Dcontrol.wired.tests.enabled=true` на JVM Jira, затем `atlas-mvn com.atlassian.maven.plugins:jira-maven-plugin:9.1.1:remote-test -Dserver=localhost -Dhttp.port=2990 -Dcontext.path=/jira`.
 - Поведение модели проверяют [evals/offline](evals/offline/README.md) (бесплатные детерминированные сценарии) и [evals/live](evals/live/README.md) (диалоги LLM с LLM на живой Jira, платные).
 - Описания инструментов и правила для модели: `src/main/resources/llm/`. Клиент получает их при подключении, после пересборки и загрузки JAR.

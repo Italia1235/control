@@ -164,6 +164,7 @@ Manage apps → Control → **Audit** (`/plugins/servlet/control/applies`, admin
 
 - Java 17, Atlassian SDK 9.1.1, Node.js 20.6+ for evals (`--env-file`). `atlas-run` starts Jira 10.3 with the plugin and JSM at `http://localhost:2990/jira` (admin/admin). The first run needs network access (repositories in `.mvn/settings.xml`); afterwards `atlas-run -o` works offline.
 - `atlas-mvn test` runs the unit tests. To check a built JAR: `atlas-mvn -o -q test -Dtest=PluginPackagingTest -Dcontrol.packagedJar=target/control-<version>.jar`.
+- GitHub Actions builds and checks the installable plugin JAR, then publishes it as the `control-jar` workflow artifact; the separate `-tests.jar` is excluded.
 - Wired tests run only against a disposable Jira: `-Dcontrol.wired.tests.enabled=true` on the Jira JVM, then `atlas-mvn com.atlassian.maven.plugins:jira-maven-plugin:9.1.1:remote-test -Dserver=localhost -Dhttp.port=2990 -Dcontext.path=/jira`.
 - Model behavior is checked by [evals/offline](evals/offline/README.md) (free, deterministic) and [evals/live](evals/live/README.md) (LLM-to-LLM dialogues against a running Jira, paid).
 - Tool descriptions and model rules: `src/main/resources/llm/`. Clients receive them on connect, after the JAR is rebuilt and uploaded.

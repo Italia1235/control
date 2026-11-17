@@ -23,13 +23,20 @@ jobs:
       - name: Build and run unit tests
         run: mvn -B -ntp clean package
       - name: Check the packaged JAR
+        id: packaged
         run: |
-          jar=$(ls target/control-*.jar)
+          mapfile -t jars < <(find target -maxdepth 1 -type f -name 'control-*.jar' ! -name '*-tests.jar')
+          if [[ ${#jars[@]} -ne 1 ]]; then
+            echo "::error::Expected exactly one plugin JAR, found ${#jars[@]}"
+            exit 1
+          fi
+          jar="${jars[0]}"
+          echo "jar=$jar" >> "$GITHUB_OUTPUT"
           mvn -B -ntp -o -q test -Dtest=PluginPackagingTest -Dcontrol.packagedJar="$jar"
       - uses: actions/upload-artifact@v4
         with:
           name: control-jar
-          path: target/control-*.jar
+          path: ${{ steps.packaged.outputs.jar }}
           if-no-files-found: error
 
   evals:
